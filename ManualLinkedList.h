@@ -18,25 +18,38 @@
 
 class ManualLinkedListBase {
     friend class ManualLinkedList;
-    // prev and next may reallocate, but head does not.
-    std::vector<VertexIndex> prev;
-    std::vector<VertexIndex> next;
-    std::vector<VertexIndex> head;
-    VertexIndex blockPool; // stores ids of recycled blocks. Maintained as a forward linked list.
 
-    public:
-    ManualLinkedListBase(size_t s)
-    : prev(s+1, INVALID_VERTEX), next(s+1, INVALID_VERTEX), head(s, INVALID_VERTEX), blockPool(s) {}
+    // stores the previous vertex in the linked list.
+    // for block heads, stores the size of the block.
+    std::vector<VertexIndex> prev;
+
+    // stores the next vertex in the linked list.
+    // for block tails, equals to INVALID_VERTEX to mark itself the end of the block.
+    std::vector<VertexIndex> next;
+
+    // stores the head of the block each vertex belongs to.
+    // if head[v] == INVALID_VERTEX, then v is not in any block.
+    // for BLOCK heads, stores the TAIL of the block.
+    std::vector<VertexIndex> head;
+
+    VertexIndex blockPool; // A special linked list to keep track of the recycled blocks.
+    // Maintained as a forward list.
 
     // Remove a vertex from its current linked list.
     // Return the VertexIndex at the next position.
+    // caller responsible to check whether the vertex is in some block.
     VertexIndex erase(VertexIndex v);
+
+    // Recycle a linked list block.
+    // This is called when a ManualLinkedList is destructed.
+    void recycleList(VertexIndex id) { next[id] = blockPool; blockPool = id; }
+
+    public:
+    ManualLinkedListBase(size_t s)
+    : prev(s, NULL_VERTEX), next(s, NULL_VERTEX), head(s, NULL_VERTEX), blockPool(NULL_VERTEX) {}
 
     // Create a new linked list.
     ManualLinkedList newList();
-
-    // Recycle a linked list.
-    void recycleList(VertexIndex id) { next[id] = next[blockPool]; next[blockPool] = id; }
     
 };
 
@@ -56,27 +69,57 @@ class ManualLinkedList {
 
     // ManualLinkedList should only be created by ManualLinkedListBase::newList().
     ManualLinkedList(ManualLinkedListBase& base, VertexIndex id)
-    : listBase(base), id(id) { listBase.prev[id] = 0; listBase.next[id] = INVALID_VERTEX; }
+    : listBase(base), id(id) { listBase.prev[id] = 0; listBase.next[id] = listBase.head[id] = NULL_VERTEX; }
 
-public:
+    public:
 
-    ~ManualLinkedList() { listBase.recycleList(id); }
+    // ManualLinkedList(ManualLinkedList&& other) = default;
+    // ManualLinkedList& operator=(ManualLinkedList&& other) = default;
+    // ManualLinkedList(const ManualLinkedList& other) = default;
+    // ManualLinkedList& operator=(const ManualLinkedList& other) = default;
 
-    VertexIndex begin() const { return listBase.next[id]; }
+    ~ManualLinkedList();
 
-    constexpr VertexIndex end() const { return INVALID_VERTEX; }
+    class Iterator {
+        const ManualLinkedList& list;
+        VertexIndex current;
+    public:
+        constexpr Iterator(const ManualLinkedList& lst, VertexIndex start) : list(lst), current(start) {}
+        Iterator(Iterator&& other) = delete;
+        constexpr Iterator& operator=(ManualLinkedList::Iterator &&) = delete;
+        Iterator(const Iterator& other) = default;
+        constexpr Iterator& operator=(const ManualLinkedList::Iterator &) = default;
+        VertexIndex operator*() const { return current; }
+        Iterator& operator++() { current = list.listBase.next[current]; return *this; }
+        Iterator& operator++(int) { auto tmp = *this; ++(*this); return tmp; }
+        bool operator!=(const Iterator& other) const { return current != other.current; }
+    };
 
-    VertexIndex erase(VertexIndex v) { listBase.erase(v); }
+    bool empty() const { return listBase.prev[id] == 0; }
+
+    Iterator begin() const { return Iterator{*this, listBase.next[id]}; }
+
+    constexpr Iterator end() const { return Iterator{*this, NULL_VERTEX}; }
 
     size_t size() const { return listBase.prev[id]; }
 
     // Prepare the block to be inserted into FrontierManager.
     void archive() { flushHead(); }
 
-    // Add a vertex to the block.
+    // Add a vertex to this linked list.
     // If the vertex is already in another block, it will be removed from the old block.
     // If the vertex is already in this block, it will be ignored.
+    // return if the vertex 
     void add(VertexIndex v);
 
+    // Remove a vertex from its current linked list.
+    // Return the VertexIndex at the next position.
+    // caller responsible to check whether the vertex is in some block.
+    VertexIndex erase(VertexIndex v) { listBase.erase(v); }
+
     VertexIndex next(VertexIndex v) const { return listBase.next[v]; }
+    
+    // Merge another linked list into this linked list.
+    // The other linked list will be empty after the merge.
+    void merge(ManualLinkedList& other);
 };

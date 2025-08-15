@@ -53,7 +53,8 @@ class LengthWrapper{
     // we additionally store the index of this vertex to make various operations smoother.
 
 public:
-    LengthWrapper() LengthWrapper(ActualLengthT{std::numeric_limits<double>::infinity()}, SIZE_MAX, INVALID_VERTEX, INVALID_VERTEX){}
+
+    LengthWrapper() LengthWrapper(ActualLengthT{std::numeric_limits<double>::infinity()}, SIZE_MAX, INVALID_VERTEX, INVALID_VERTEX) {}
 
     LengthWrapper(ActualLengthT len, size_t edges, VertexIndex prevIndex, VertexIndex thisIndex)
         : length(len), numOfEdges(edges), prevVertexIndex(prevIndex), thisVertexIndex(thisIndex) {}
@@ -62,6 +63,9 @@ public:
     LengthWrapper& operator=(LengthWrapper&& other) = default;
     LengthWrapper(const LengthWrapper& other) = default;
     LengthWrapper& operator=(const LengthWrapper& other) = default;
+
+    static LengthWrapper zero() { return LengthWrapper(ActualLengthT{0.0}, 0, 0, 0); }
+    static LengthWrapper infinity() { return LengthWrapper(); }
 
     auto operator == (const LengthWrapper& other) const {
         return length == other.length &&

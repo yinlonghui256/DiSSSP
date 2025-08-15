@@ -7,6 +7,10 @@
 #include "Block.h"
 #include "ManualLinkedList.h"
 
+
+using UList = std::unique_ptr<std::list<VertexIndex>>;
+
+
 class GraphContext {
 
     Graph graph;
@@ -22,7 +26,7 @@ public:
         dhat.reserve(g.getNumOfVertices());
         dhat.emplace_back(0.0, 0, 0, 0); // source vertex
         for (VertexIndex v = 1; v < g.getNumOfVertices(); ++v) {
-            dhat.emplace_back(std::numeric_limits<ActualLength>::infinity(), SIZE_MAX, INVALID_VERTEX, v);
+            dhat.emplace_back(std::numeric_limits<ActualLength>::infinity(), SIZE_MAX, NULL_VERTEX, v);
         }
     }
 

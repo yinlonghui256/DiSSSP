@@ -7,12 +7,14 @@
 
 
 using BlockContainer = ManualLinkedList;
-// using BlockIterator = BlockContainer::iterator;
-
+// renaming this because we had multiple alternative implementations.
+// Just for smoother transition.
+using ShPBlock = std::shared_ptr<Block>;
 
 /**
  * @brief A Block is an unsorted linked list of vertices, and the manage unit of FrontierManager.
  * It maintains an interval [lowerBound, upperBound) for vertices in this Block.
+ * The upperBound, once initialized, will never be changed, until deconstructed.
  * It is also designed to contain no more than M(=capacity) items (possibly empty). 
  * The constraints may be temporarily violated, but will be restored before added into FrontierManager.
  * 
@@ -49,27 +51,28 @@ public:
     bool suit(Length length) const { return length >= lowerBound && length < upperBound; }
 
     // Add an vertex to this Block.
-    // If the Block is oversized, it will be split into two Blocks in frontierManager.
+    // caller responsible to check whether suit.
     void addItem(VertexIndex v) { items.add(v); }
 
-    VertexIndex removeItem(VertexIndex v) { return items.erase(v); }
+    // VertexIndex removeItem(VertexIndex v) { return items.erase(v); }
 
     size_t countNoGreater(const GraphContext& context, Length threshold) const;
 
     // Extracts all items in this Block that are less than the threshold to form a new Block.
     // The original Block is modified to remove these items.
-    std::shared_ptr<Block> extractLessThan(GraphContext& context, Length threshold);
+    ShPBlock extractLessThan(GraphContext& context, Length threshold);
 
     // Extracts the smallest q items to form a new Block.
     // The original Block is modified to remove these items.
-    std::shared_ptr<Block> extractMinQ(GraphContext& context, size_t q) { return extractLessThan(context, locateMinQ(context, q + 1)); }
+    ShPBlock extractMinQ(GraphContext& context, size_t q) { return extractLessThan(context, locateMinQ(context, q + 1)); }
 
     // Find the q-th smallest item in this Block.
     // This function runs in linear time.
-    Length locateMinQ(const GraphContext& context, size_t q) const ;
+    Length locateMinQ(const GraphContext& context, size_t q) const;
 
     // Split this Block into two Blocks by median.
     // This block would hold the larger half, and the function returns the smaller half.
-    std::shared_ptr<Block> splitAtMedian(GraphContext& context) { return extractMinQ(context, items.size() / 2); }
+    ShPBlock splitAtMedian(GraphContext& context) { return extractMinQ(context, items.size() / 2); }
 
+    UList toUList();
 };

@@ -1,5 +1,6 @@
 #include "Length.h"
 
+
 Length linearLocateMinQ(std::vector<Length>& cache, size_t q, size_t first, size_t last, size_t step) {
     if (last == 0) { last = cache.size(); }
     size_t n = (last - first + step - 1) / step; // number of items in the range

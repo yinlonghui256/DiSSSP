@@ -7,7 +7,7 @@
 // We do not maintain vertex objects, they are uniquely identified by their index.
 using VertexIndex = size_t;
 
-constexpr VertexIndex INVALID_VERTEX = SIZE_MAX;
+constexpr VertexIndex NULL_VERTEX = SIZE_MAX;
 
 struct Arc {
     VertexIndex to;
