@@ -10,13 +10,7 @@ void FrontierManager::insert(VertexIndex v){
     // If the algorithm is correct, there should always be a suitable block.
     auto it = D1.upper_bound(v_length);
     if (it != D1.end() && it->second->suit(v_length)) {
-        if (vertexContexts[v].valid) {
-            auto oldBlock = vertexContexts[v].block.lock();
-            if (oldBlock && oldBlock != it->second) {
-                // If the old block is not the same as the new one, remove the old occurrence.
-                    oldBlock->removeItem(vertexContexts[v].it);
-                } 
-            }
+        it->second->addItem(v);
         if (it->second->overSized()) {
             // If the block is oversized, it will be split into two blocks.
             auto newBlock = it->second->splitAtMedian(context);
