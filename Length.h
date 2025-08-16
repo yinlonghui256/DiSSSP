@@ -54,18 +54,18 @@ class LengthWrapper{
 
 public:
 
-    LengthWrapper() LengthWrapper(ActualLengthT{std::numeric_limits<double>::infinity()}, SIZE_MAX, INVALID_VERTEX, INVALID_VERTEX) {}
+    constexpr LengthWrapper() LengthWrapper(ActualLengthT{std::numeric_limits<double>::infinity()}, SIZE_MAX, INVALID_VERTEX, INVALID_VERTEX) {}
 
-    LengthWrapper(ActualLengthT len, size_t edges, VertexIndex prevIndex, VertexIndex thisIndex)
+    constexpr LengthWrapper(ActualLengthT len, size_t edges, VertexIndex prevIndex, VertexIndex thisIndex)
         : length(len), numOfEdges(edges), prevVertexIndex(prevIndex), thisVertexIndex(thisIndex) {}
 
-    LengthWrapper(LengthWrapper&& other) = default;
-    LengthWrapper& operator=(LengthWrapper&& other) = default;
-    LengthWrapper(const LengthWrapper& other) = default;
-    LengthWrapper& operator=(const LengthWrapper& other) = default;
+    constexpr LengthWrapper(LengthWrapper&& other) = default;
+    constexpr LengthWrapper& operator=(LengthWrapper&& other) = default;
+    constexpr LengthWrapper(const LengthWrapper& other) = default;
+    constexpr LengthWrapper& operator=(const LengthWrapper& other) = default;
 
-    static LengthWrapper zero() { return LengthWrapper(ActualLengthT{0.0}, 0, 0, 0); }
-    static LengthWrapper infinity() { return LengthWrapper(); }
+    static constexpr LengthWrapper zero() { return LengthWrapper(ActualLengthT{0.0}, 0, 0, 0); }
+    static constexpr LengthWrapper infinity() { return LengthWrapper(); }
 
     auto operator == (const LengthWrapper& other) const {
         return length == other.length &&

@@ -11,12 +11,12 @@
  * And more importantly, we need to support the removal of vertices by their value,
  * which it is not very convenient to do with a std::list.
  * 
- * 0 ~ n-1 are for the vertices, n maintains a pool of recycled blocks.
+ * 0 ~ n-1 are for the vertices, from above n are for the blocks.
  * blocks are assigned to dynamic id but larger than n.
  * The head array stores the head of the block each vertex belongs to.
  */
 
-class ManualLinkedListBase {
+class ManualLinkedListBase : public std::enable_shared_from_this<ManualLinkedListBase> {
     friend class ManualLinkedList;
 
     // stores the previous vertex in the linked list.
@@ -60,7 +60,7 @@ class ManualLinkedListBase {
  */
 class ManualLinkedList {
     friend class ManualLinkedListBase;
-    ManualLinkedListBase& listBase;
+    std::weak_ptr<ManualLinkedListBase> wpListBase;
     VertexIndex id;
     // The size of a block is stored in prev[id], as id is always the head of the block.
 
@@ -68,15 +68,15 @@ class ManualLinkedList {
     void flushHead();
 
     // ManualLinkedList should only be created by ManualLinkedListBase::newList().
-    ManualLinkedList(ManualLinkedListBase& base, VertexIndex id)
-    : listBase(base), id(id) { listBase.prev[id] = 0; listBase.next[id] = listBase.head[id] = NULL_VERTEX; }
+    ManualLinkedList(std::shared_ptr<ManualLinkedListBase> base, VertexIndex id)
+    : wpListBase(base), id(id) { base->prev[id] = 0; base->next[id] = base->head[id] = NULL_VERTEX; }
 
     public:
 
-    // ManualLinkedList(ManualLinkedList&& other) = default;
-    // ManualLinkedList& operator=(ManualLinkedList&& other) = default;
-    // ManualLinkedList(const ManualLinkedList& other) = default;
-    // ManualLinkedList& operator=(const ManualLinkedList& other) = default;
+    ManualLinkedList(ManualLinkedList&& other) = default;
+    ManualLinkedList& operator=(ManualLinkedList&& other) = default;
+    ManualLinkedList(const ManualLinkedList& other) = default;
+    ManualLinkedList& operator=(const ManualLinkedList& other) = default;
 
     ~ManualLinkedList();
 
@@ -90,18 +90,18 @@ class ManualLinkedList {
         Iterator(const Iterator& other) = default;
         constexpr Iterator& operator=(const ManualLinkedList::Iterator &) = default;
         VertexIndex operator*() const { return current; }
-        Iterator& operator++() { current = list.listBase.next[current]; return *this; }
+        Iterator& operator++() { current = list.wpListBase.lock()->next[current]; return *this; }
         Iterator& operator++(int) { auto tmp = *this; ++(*this); return tmp; }
         bool operator!=(const Iterator& other) const { return current != other.current; }
     };
 
-    bool empty() const { return listBase.prev[id] == 0; }
+    bool empty() const { return wpListBase.lock()->prev[id] == 0; }
 
-    Iterator begin() const { return Iterator{*this, listBase.next[id]}; }
+    Iterator begin() const { return Iterator{*this, wpListBase.lock()->next[id]}; }
 
     constexpr Iterator end() const { return Iterator{*this, NULL_VERTEX}; }
 
-    size_t size() const { return listBase.prev[id]; }
+    size_t size() const { return wpListBase.lock()->prev[id]; }
 
     // Prepare the block to be inserted into FrontierManager.
     void archive() { flushHead(); }
@@ -115,11 +115,12 @@ class ManualLinkedList {
     // Remove a vertex from its current linked list.
     // Return the VertexIndex at the next position.
     // caller responsible to check whether the vertex is in some block.
-    VertexIndex erase(VertexIndex v) { listBase.erase(v); }
+    VertexIndex erase(VertexIndex v) { wpListBase.lock()->erase(v); }
 
-    VertexIndex next(VertexIndex v) const { return listBase.next[v]; }
+    VertexIndex next(VertexIndex v) const { return wpListBase.lock()->next[v]; }
     
     // Merge another linked list into this linked list.
     // The other linked list will be empty after the merge.
+    // The complexity is linear to the size of the other linked list.
     void merge(ManualLinkedList& other);
 };

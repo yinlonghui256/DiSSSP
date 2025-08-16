@@ -2,6 +2,7 @@
 
 #include <list>
 #include <map>
+#include <forward_list>
 #include "Length.h"
 #include "Block.h"
 
@@ -19,17 +20,23 @@ class FrontierManager {
 
     GraphContext& context; // The graph context that contains the graph and the dhat array.
 
-    std::list<ShPBlock> D0;   // D_0 in the paper
+    std::forward_list<ShPBlock> D0;   // D_0 in the paper
     std::map<Length, ShPBlock> D1; // D_1 in the paper
     size_t M; // M in the paper, default capacity of the Blocks.
     Length upperBound; // B in the paper, upper bound for all inserted items.
-    Length currentLowerBound; // B_i in the paper, the latest lower bound of all items in D0 and D1.
+    Length currentLowerBound; // B_i(B_i') in the paper, the latest lower bound of all items.
+    // changes its value only when pull() or batchPrepend() is called or P (in the paper) is inserted.
+    // immediatedly after each pull, equals to B_i in the paper.
+    // immediatedly after all insertion and batch-prepend, equals to B_i' in the paper.
+    // Before the first pull, initialized to B.
+    // if P is empty, then B_0 = B.
+    // else, update to min length of P, i.e., B_0 as in the paper.
 
-    public:
+public:
 
     FrontierManager(GraphContext& ctx, size_t m, Length ub)
-    : context(ctx), M(m), upperBound(ub), currentLowerBound(Length::zero()) {
-        D1[upperBound] = newBlock();
+    : context(ctx), M(m), upperBound(ub), currentLowerBound(ub) {
+        D1[upperBound] = newBlock(upperBound);
     }
 
     // Insert a vertex into the FrontierManager.
@@ -45,8 +52,8 @@ class FrontierManager {
     // Caller ensure pBlock->upperBound <= currentLowerBound. 
     void batchPrepend(ShPBlock pBlock);
 
-    ShPBlock newBlock() {
-        return std::make_shared<Block>(context.newList(), Length::zero(), upperBound, M);
+    ShPBlock newBlock(Length ub = Length::infinity(), Length lb = Length::zero()) {
+        return std::make_shared<Block>(context.newList(), ub, lb, M);
     }
 
     Length getCurrentLowerBound() const { return currentLowerBound; }

@@ -26,17 +26,16 @@ Length Block::locateMinQ(const GraphContext& context, size_t q) const {
 }
 
 
-// in principle, lowerBound < threshold < upperBound.
-// threshold itself should be equal to some item in the Block.
-// This function should only be called when the Block is oversized.
 ShPBlock Block::extractLessThan(GraphContext& context, Length threshold) {
-    if (threshold <= lowerBound || upperBound <= threshold) {
-        throw std::out_of_range("threshold is out of range in extractNoGreater");
-    } else if (!overSized()) {
-        throw std::logic_error("Block is not oversized. Should not call extractNoGreater.");
+    lowerBound = threshold;
+
+    // If threshold >= upperBound, then we are extracting all items, and this Block will become empty.
+    if (threshold >= upperBound) {
+        auto newBlock = std::make_shared<Block>(*this);
+        items = context.newList();
+        return newBlock;
     }
 
-    lowerBound = threshold;
 
     auto newList = context.newList();
     for (auto it = items.begin(); it != items.end(); ) {
@@ -54,3 +53,10 @@ UList Block::toUList() {
     for (auto it: items) { res->emplace_back(it); }
     return res;
 }
+
+void Block::merge(Block& other)  {
+    items.merge(other.items);
+    upperBound = std::max(upperBound, other.upperBound);
+    lowerBound = std::min(lowerBound, other.lowerBound);
+}
+

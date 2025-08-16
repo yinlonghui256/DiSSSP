@@ -28,61 +28,64 @@ ManualLinkedList ManualLinkedListBase::newList() {
         newId = blockPool;
         blockPool = next[blockPool];        
     }
-    return ManualLinkedList{*this, newId};
+    return ManualLinkedList{shared_from_this(), newId};
 }
 
 
 ManualLinkedList::~ManualLinkedList() {
-    for (auto it : *this) { listBase.head[it] = NULL_VERTEX; }
-    listBase.recycleList(id);
+    auto pListBase = wpListBase.lock();
+    for (auto it : *this) { pListBase->head[it] = NULL_VERTEX; }
+    pListBase->recycleList(id);
 }
 
 
 void ManualLinkedList::flushHead() {
-    for (auto it : *this) { listBase.head[it] = id; }
+    for (auto it : *this) { wpListBase.lock()->head[it] = id; }
 }
 
 
 void ManualLinkedList::add(VertexIndex v) {
+    auto pListBase = wpListBase.lock();
     // The vertex is already in this block, no need to add it again.
-    if (listBase.head[v] == id) { return; }
+    if (pListBase->head[v] == id) { return; }
 
     // If the vertex is in another block, remove it from the old block.
-    if (listBase.head[v] != NULL_VERTEX) { listBase.erase(v); }
+    if (pListBase->head[v] != NULL_VERTEX) { pListBase->erase(v); }
 
     // New vertices are always inserted after the head of the block.
-    VertexIndex &nextId = listBase.next[id];
-    listBase.head[v] = id;
-    listBase.prev[v] = id;
-    listBase.next[v] = nextId;
-    if (nextId != NULL_VERTEX) { listBase.prev[nextId] = v; }
-    else { listBase.head[id] = v; } // v is the tail of the block.
+    VertexIndex &nextId = pListBase->next[id];
+    pListBase->head[v] = id;
+    pListBase->prev[v] = id;
+    pListBase->next[v] = nextId;
+    if (nextId != NULL_VERTEX) { pListBase->prev[nextId] = v; }
+    else { pListBase->head[id] = v; } // v is the tail of the block.
     nextId = v;
-    ++ listBase.prev[id]; // update size of the block.
+    ++ pListBase->prev[id]; // update size of the block.
 }
 
 
 void ManualLinkedList::merge(ManualLinkedList& other) {
+    auto pListBase = wpListBase.lock();
     // If the other block is empty, do nothing.
     if (other.empty()) { return; }
     // If this block is empty, just take over the other block.
     if (empty()) { std::swap(id, other.id); return; }
     else {
         // Both blocks are non-empty. Merge them.
-        VertexIndex thisTail = listBase.head[id];
-        VertexIndex otherHead = listBase.next[other.id];
-        VertexIndex otherTail = listBase.head[other.id];
+        VertexIndex thisTail = pListBase->head[id];
+        VertexIndex otherHead = pListBase->next[other.id];
+        VertexIndex otherTail = pListBase->head[other.id];
         // Link the two blocks.
-        listBase.next[thisTail] = otherHead;
-        listBase.prev[otherHead] = thisTail;
-        listBase.head[id] = otherTail;
+        pListBase->next[thisTail] = otherHead;
+        pListBase->prev[otherHead] = thisTail;
+        pListBase->head[id] = otherTail;
         // Update the head of all vertices in the other block to this id.
         // Currently, other.begin() and other.end() are valid.
-        for (auto it : other) { listBase.head[it] = id; }
+        for (auto it : other) { pListBase->head[it] = id; }
         // Update size of the block.
-        listBase.prev[id] += listBase.prev[other.id];
+        pListBase->prev[id] += pListBase->prev[other.id];
         // Clear the other block.
-        listBase.prev[other.id] = 0;
-        listBase.next[other.id] = listBase.head[other.id] = NULL_VERTEX;
+        pListBase->prev[other.id] = 0;
+        pListBase->next[other.id] = pListBase->head[other.id] = NULL_VERTEX;
     }
 }

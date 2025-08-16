@@ -25,30 +25,33 @@ using ShPBlock = std::shared_ptr<Block>;
 class Block {
 
     BlockContainer items;
-    Length lowerBound; //inclusive
     Length upperBound; // exclusive
+    Length lowerBound; //inclusive
     size_t capacity; // designed max number of items in this Block, typically M. 
 
 public:
 
-    Block(BlockContainer&& its, Length lower, Length upper, size_t cap = 0)
-    : items(std::move(its)), lowerBound(lower), upperBound(upper), capacity(cap) {
-        if (lowerBound >= upperBound) { throw std::invalid_argument("Block lowerBound must be less than upperBound"); }
+    Block(BlockContainer&& its, Length upper, Length lower, size_t cap = 0)
+    : items(std::move(its)), upperBound(upper), lowerBound(lower), capacity(cap) {
+        if (upperBound < lowerBound) { throw std::invalid_argument("Block lowerBound must be less than upperBound"); }
     }
 
-    Block(BlockContainer&& its) : items(std::move(its)) {}
+    Block(Block&& other) = default;
+    Block& operator=(Block&& other) = default;
+    Block(const Block& other) = default;
+    Block& operator=(const Block& other) = default;
 
     size_t getSize() const { return items.size(); }
 
-    Length getLowerBound() const {return lowerBound; }
-
     Length getUpperBound() const {return upperBound; }
+
+    Length getLowerBound() const {return lowerBound; }
 
     size_t getCapacity() const { return capacity; }
 
     bool overSized() const { return items.size() > capacity; }
 
-    bool suit(Length length) const { return length >= lowerBound && length < upperBound; }
+    bool suit(Length length) const { return length < upperBound && length >= lowerBound; }
 
     // Add an vertex to this Block.
     // caller responsible to check whether suit.
@@ -75,4 +78,13 @@ public:
     ShPBlock splitAtMedian(GraphContext& context) { return extractMinQ(context, items.size() / 2); }
 
     UList toUList();
+
+    // Merge another block into this block.
+    // The other block will be empty after the merge.
+    // The complexity is linear to the size of the other linked list.
+    void merge(Block& other);
+
+    // allow iterating over items of this Block.
+    auto begin() { return items.begin(); }
+    auto end() { return items.end(); }
 };

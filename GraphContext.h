@@ -17,12 +17,13 @@ class GraphContext {
 
     std::vector<Length> dhat; // The \hat{d} array in the paper, storing the lengths of the shortest paths from the source to each vertex.
 
-    ManualLinkedListBase listBase;
+    std::shared_ptr<ManualLinkedListBase> spListBase;
 
 public:
 
     GraphContext(Graph&& g)
-    : graph(g), listBase(g.getNumOfVertices()) {
+    : graph(g) {
+        spListBase = std::make_shared<ManualLinkedListBase>(g.getNumOfVertices());
         dhat.reserve(g.getNumOfVertices());
         dhat.emplace_back(0.0, 0, 0, 0); // source vertex
         for (VertexIndex v = 1; v < g.getNumOfVertices(); ++v) {
@@ -32,6 +33,6 @@ public:
 
     const std::vector<Length> & getDhat() const { return dhat; }
 
-    ManualLinkedList newList() { return listBase.newList(); }
+    ManualLinkedList newList() { return spListBase->newList(); }
 
 };
