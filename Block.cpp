@@ -30,7 +30,7 @@ Length Block::locateMinQ(const GraphContext& context, size_t q) const {
 }
 
 
-ShPBlock Block::extractLessThanOrEqual(GraphContext& context, Length threshold, bool strict) {
+ShpBlock Block::extractLessThanOrEqual(GraphContext& context, Length threshold, bool strict) {
     lowerBound = threshold;
 
     // If threshold >= upperBound, then we are extracting all items anyway, and this Block will become empty.

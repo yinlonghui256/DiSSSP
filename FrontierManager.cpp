@@ -51,7 +51,7 @@ void FrontierManager::insert(VertexIndex v){
 }
 
 
-void FrontierManager::batchPrepend(ShPBlock pBlock) {
+void FrontierManager::batchPrepend(ShpBlock pBlock) {
     if (currentLowerBound < pBlock->getUpperBound()) {
         throw std::logic_error("pBlock upperBound exceeds currentLowerBound in FrontierManager::batchPrepend.");
     }
@@ -98,9 +98,9 @@ void FrontierManager::batchPrepend(ShPBlock pBlock) {
 
 // Note that the above arguments hold even if M == 1.
 // These ensures that pull() is amortized to linear time per output size.
-ShPBlock FrontierManager::pull() {
+std::pair<Length, ShpBlock> FrontierManager::pull() {
 
-    ShPBlock S0 = newBlock(upperBound, currentLowerBound);
+    ShpBlock S0 = newBlock(upperBound, currentLowerBound);
     while (!D0.empty()) {
         S0 -> merge(* D0.front());
         D0.pop_front();
@@ -109,7 +109,7 @@ ShPBlock FrontierManager::pull() {
 
     if (S0 -> getSize() >= M) {
         Length S0Mth = S0 -> locateMinQ(context, M);
-        Length D1min = clearEmptyPrefixD1() ? D1.begin() -> second -> min(context) : upperBound;
+        Length D1min = (clearEmptyPrefixD1() ? D1.begin()->second-> min(context) : upperBound);
         if (S0Mth < D1min) {
             // Case 1: output contains no vertex from D1, and extract no block from D1.
             auto S0L = S0 -> extracetLessThanOrEqual(context, S0Mth);
@@ -121,12 +121,12 @@ ShPBlock FrontierManager::pull() {
                 // Note that now |S0| <= M.
                 D0.push_front(S0);
             }
-            return S0L;
+            return std::make_pair(currentLowerBound, S0L);
         }
     }
 
     // Case 2: output contains some vertex from D1, we can do O(1) extraction/insertion on D1.
-    ShPBlock S1 = newBlock(upperBound, currentLowerBound);
+    ShpBlock S1 = newBlock(upperBound, currentLowerBound);
     while (!D1.empty()) {
         S1 -> merge(D1.begin()->second);
         D1.erase(D1.begin());
@@ -138,7 +138,7 @@ ShPBlock FrontierManager::pull() {
         // Now both D0 and D1 become empty.
         S0 -> merge(*S1);
         currentLowerBound = upperBound;
-        return S0;
+        return std::make_pair(currentLowerBound, S0);
     }
 
     // We are able to pull M items, so we can spend O(M) time.
@@ -197,6 +197,6 @@ ShPBlock FrontierManager::pull() {
 
     currentLowerBound = x;
     S0L->merge(*S1L);
-    return S0L;
+    return std::make_pair(currentLowerBound, S0L);
 }
 

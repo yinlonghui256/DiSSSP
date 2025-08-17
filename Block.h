@@ -9,7 +9,7 @@
 using BlockContainer = ManualLinkedList;
 // renaming this because we had multiple alternative implementations.
 // Just for smoother transition.
-using ShPBlock = std::shared_ptr<Block>;
+using ShpBlock = std::shared_ptr<Block>;
 
 /**
  * @brief A Block is an unsorted linked list of vertices, and the manage unit of FrontierManager.
@@ -67,12 +67,12 @@ public:
     // The original Block is modified to remove these items.
     // If strict is true, then extract items < threshold. Else, extract items <= threshold.
     // In default, strict == false.
-    ShPBlock extractLessThanOrEqual(GraphContext& context, Length threshold, bool strict = false);
+    ShpBlock extractLessThanOrEqual(GraphContext& context, Length threshold, bool strict = false);
 
 
     // Extracts the smallest q items to form a new Block.
     // The original Block is modified to remove these items.
-    ShPBlock extractMinQ(GraphContext& context, size_t q) { return extractLessThanOrEqual(context, locateMinQ(context, q)); }
+    ShpBlock extractMinQ(GraphContext& context, size_t q) { return extractLessThanOrEqual(context, locateMinQ(context, q)); }
 
     // Find the q-th smallest item in this Block.
     // This function runs in linear time.
@@ -80,7 +80,7 @@ public:
 
     // Split this Block into two Blocks by median.
     // This block would hold the larger half, and the function returns the smaller half.
-    ShPBlock splitAtMedian(GraphContext& context) { return extractMinQ(context, items.size() / 2); }
+    ShpBlock splitAtMedian(GraphContext& context) { return extractMinQ(context, items.size() / 2); }
 
     UList toUList();
 

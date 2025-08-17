@@ -75,10 +75,12 @@ public:
     }
 
     auto operator <=> (const LengthWrapper& other) const {
-        if (auto cmp = length <=> other.length; cmp != 0) { return cmp; }
-        if (auto cmp = numOfEdges <=> other.numOfEdges; cmp != 0) { return cmp; }
-        if (auto cmp = prevVertexIndex <=> other.prevVertexIndex; cmp != 0) { return cmp; }
-        return thisVertexIndex <=> other.thisVertexIndex;
+        return std::tie(length, numOfEdges, prevVertexIndex, thisVertexIndex) <=>
+            std::tie(other.length, other.numOfEdges, other.prevVertexIndex, other.thisVertexIndex);
+        // if (auto cmp = length <=> other.length; cmp != 0) { return cmp; }
+        // if (auto cmp = numOfEdges <=> other.numOfEdges; cmp != 0) { return cmp; }
+        // if (auto cmp = prevVertexIndex <=> other.prevVertexIndex; cmp != 0) { return cmp; }
+        // return thisVertexIndex <=> other.thisVertexIndex;
     }
 
     VertexIndex getIndex() const { return thisVertexIndex; }
