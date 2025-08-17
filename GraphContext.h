@@ -3,6 +3,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <stack>
 #include "Graph.h"
 #include "Block.h"
 #include "ManualLinkedList.h"
@@ -40,7 +41,7 @@ class GraphContext {
 
     // FindPivot function, which is called in the BMSSP_recurse function.
     // The signature is specified as in algorithm 1 in the paper.
-    FindPivotReturn FindPivot(Length B, ShpBlock S);
+    FindPivotReturn FindPivot(Parameters lkt, Length B, ShpBlock S);
 
     // extracts the vertices from uList that are less than or equal to the threshold.
     // If strict is true, extract strictly less than; otherwise, extract less than or equal (defualt false).

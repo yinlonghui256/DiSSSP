@@ -7,7 +7,7 @@ GraphContext::BMSSPReturn GraphContext::BMSSP_recurse(Parameters lkt, Length B, 
     // Implemented as algorithm 3 in the paper.
     if (l == 0) { return BMSSP_basecase({0, k, t}, B, S); }
 
-    auto [P, W] = FindPivot(B, S);
+    auto [P, W] = FindPivot(lkt, B, S);
 
     size_t M = (1 << ((l - 1) * t)); // M = 2^((l-1)*t).
     size_t largeWorkload = k << (l * t); // largeWorkload = k * 2^(l*t).
@@ -95,9 +95,74 @@ GraphContext::BMSSPReturn GraphContext::BMSSP_basecase(Parameters lkt, Length B,
 }
 
 
-GraphContext::FindPivotReturn GraphContext::FindPivot(Length B, ShpBlock S) {
+GraphContext::FindPivotReturn GraphContext::FindPivot(Parameters lkt, Length B, ShpBlock S) {
+    auto [l, k, t] = lkt;
     // Implementation of the FindPivot function as specified in the paper.
-    // This function will find the pivot vertices and return the appropriate FindPivotReturn structure.
+    UList W = S->toUList();
+    size_t W_count = 0;
+    size_t kS = k * S->getSize();
+    std::vector<size_t> layerInW(graph.getNumOfVertices(), 0);
+    for (const auto& v : *W) { layerInW[v] = 1; }
+
+    for (size_t i = 1; i <= k; ++i) {
+        for (const auto& u: *W) {
+            if (layerInW[u] == i) {
+                for (const auto& [v, weight_uv]: graph.getNeighbors(u)) {
+                    Length relax = dhat[u].relax(v, weight_uv);
+                    if (relax <= dhat[v] && relax < B) {
+                        if (layerInW[v] == 0) { ++ W_count; W -> emplace_back(v); }
+                        layerInW[v] = i + 1;
+                    }
+                }
+            }
+        }
+        if (W_count > kS) { return std::make_pair(S -> toUList(), std::move(W)); }
+    }
+
+    UList P = std::make_unique<std::list<VertexIndex>>();
+
+    std::vector<size_t> subtree(graph.getNumOfVertices(), 0);
+    std::vector<bool> isRoot(graph.getNumOfVertices(), true);
+
+    // Now DFS.
+    std::stack<VertexIndex> dfsStack;
+
+    for (const auto& v : *W) { dfsStack.push(v); }
+
+    // For every vertex popped, its subtree size has been correctly calculated.
+    // For every vertex, if its subtree size has not been calculated, it is kept zero.
+    // So if a vertex has non-zero subtree size, its subtree size has been correctly calculated.
+    // If the two children of a vertex have their subtree sizes calculated,
+    // then this vertex is ready to be processed.
+    while (!dfsStack.empty()) {
+        auto u = dfsStack.top();
+        size_t tmpTreeSize = 1; // Count itself.
+        bool ready = true;
+        for (const auto& [v, weight_uv]: graph.getNeighbors(u)) {
+            if (layerInW[v] && dhat[u].relax(v, weight_uv) == dhat[v]) {
+                // This is a valid edge in F.
+                isRoot[v] = false; // v is not a root.
+                if (subtree[v]) {
+                    tmpTreeSize += subtree[v];
+                } else {
+                    ready = false;
+                    dfsStack.push(v); // Push v to stack for later processing.
+                }
+            }
+        }
+        if (ready) {
+            subtree[u] = tmpTreeSize;
+            dfsStack.pop();
+        }
+    }
+
+    for (const auto& v : *W) {
+        if (isRoot[v] && subtree[v] >= k) {
+            P->emplace_back(v);
+        }
+    }
+
+    return std::make_pair(std::move(P), std::move(W));
 }
 
 
