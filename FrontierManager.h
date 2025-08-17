@@ -3,6 +3,7 @@
 #include <list>
 #include <map>
 #include <forward_list>
+#include <algorithm>
 #include "Length.h"
 #include "Block.h"
 
@@ -32,12 +33,23 @@ class FrontierManager {
     // if P is empty, then B_0 = B.
     // else, update to min length of P, i.e., B_0 as in the paper.
 
+    // Called when a vertex is to be inserted but D1 is empty.
+    // Caller to check whether the above conditions are satisfied.
+    void addDefaultBlock() { D1[upperBound] = newBlock(upperBound); }
+
+    // Clear empty blocks in D1's prefix, until D1.front() is non-empty or D1 is empty.
+    // If D1.front() is non-empty, return true.
+    // If D1 is empty, return false.
+    bool clearEmptyPrefixD1();
+
+    // Similar to switchD1FrontNonEmpty(), but for D0.
+    bool clearEmptyPrefixD0();
+
+
 public:
 
     FrontierManager(GraphContext& ctx, size_t m, Length ub)
-    : context(ctx), M(m), upperBound(ub), currentLowerBound(ub) {
-        D1[upperBound] = newBlock(upperBound);
-    }
+    : context(ctx), M(m), upperBound(ub), currentLowerBound(ub) {}
 
     // Insert a vertex into the FrontierManager.
     // If the vertex's length exceeds upperBound, it will be ignored.

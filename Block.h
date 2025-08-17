@@ -50,6 +50,8 @@ public:
     size_t getCapacity() const { return capacity; }
 
     bool overSized() const { return items.size() > capacity; }
+    bool underSized() const { return items.size() < capacity / 2; }
+    bool normalSized() const { return items.size() >= capacity / 2 && items.size() <= capacity; }
 
     bool suit(Length length) const { return length < upperBound && length >= lowerBound; }
 
@@ -61,13 +63,16 @@ public:
 
     size_t countNoGreater(const GraphContext& context, Length threshold) const;
 
-    // Extracts all items in this Block that are less than the threshold to form a new Block.
+    // Extracts all items in this Block that are less than or equal to the threshold to form a new Block.
     // The original Block is modified to remove these items.
-    ShPBlock extractLessThan(GraphContext& context, Length threshold);
+    // If strict is true, then extract items < threshold. Else, extract items <= threshold.
+    // In default, strict == false.
+    ShPBlock extractLessThanOrEqual(GraphContext& context, Length threshold, bool strict = false);
+
 
     // Extracts the smallest q items to form a new Block.
     // The original Block is modified to remove these items.
-    ShPBlock extractMinQ(GraphContext& context, size_t q) { return extractLessThan(context, locateMinQ(context, q + 1)); }
+    ShPBlock extractMinQ(GraphContext& context, size_t q) { return extractLessThanOrEqual(context, locateMinQ(context, q)); }
 
     // Find the q-th smallest item in this Block.
     // This function runs in linear time.
@@ -87,4 +92,14 @@ public:
     // allow iterating over items of this Block.
     auto begin() { return items.begin(); }
     auto end() { return items.end(); }
+
+    // Find the minimum Length in this Block.
+    // If the Block is empty, return upperBound.
+    Length min(const GraphContext& g) const;
+
+    // Find the maximum Length in this Block.
+    // If the Block is empty, return lowerBound.
+    Length max(const GraphContext& g) const;
+
+    bool empty() const { return items.empty(); }
 };

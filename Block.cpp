@@ -16,6 +16,10 @@ Length Block::locateMinQ(const GraphContext& context, size_t q) const {
     if (q == 0 || q > items.size()) {
         throw std::out_of_range("k is out of range in locateMinK");
     }
+    // boundary cases short-circuit.
+    if (q == items.size()) { return max(context); }
+    if (q == 1) { return min(context); }
+
     // linked list is not convenient for random access,
     // we reorganize them into a vector for easier processing.
     std::vector<Length> cache;
@@ -26,25 +30,34 @@ Length Block::locateMinQ(const GraphContext& context, size_t q) const {
 }
 
 
-ShPBlock Block::extractLessThan(GraphContext& context, Length threshold) {
+ShPBlock Block::extractLessThanOrEqual(GraphContext& context, Length threshold, bool strict) {
     lowerBound = threshold;
 
-    // If threshold >= upperBound, then we are extracting all items, and this Block will become empty.
+    // If threshold >= upperBound, then we are extracting all items anyway, and this Block will become empty.
     if (threshold >= upperBound) {
         auto newBlock = std::make_shared<Block>(*this);
         items = context.newList();
         return newBlock;
     }
 
-
     auto newList = context.newList();
-    for (auto it = items.begin(); it != items.end(); ) {
-        auto currIt = it ++;
-        if (context.getDhat()[*currIt] < threshold) {
-            newList.add(*currIt); // As being added into newList, it will be removed from the current Block.
+    if (strict) {
+        for (auto it = items.begin(); it != items.end(); ) {
+            auto currIt = it ++;
+            if (context.getDhat()[*currIt] < threshold) {
+                newList.add(*currIt); // As being added into newList, it will be removed from the current Block.
+            }
+        }
+    } else {
+        for (auto it = items.begin(); it != items.end(); ) {
+            auto currIt = it ++;
+            if (context.getDhat()[*currIt] <= threshold) {
+                newList.add(*currIt); // As being added into newList, it will be removed from the current Block.
+            }
         }
     }
-    return std::make_shared<Block>(lowerBound, threshold, capacity, std::move(newList));
+
+    return std::make_shared<Block>(threshold, lowerBound, capacity, std::move(newList));
 }
 
 
@@ -60,3 +73,19 @@ void Block::merge(Block& other)  {
     lowerBound = std::min(lowerBound, other.lowerBound);
 }
 
+Length Block::min(const GraphContext& g) const {
+    Length minLength = upperBound;
+    for (auto v : items) {
+        minLength = std::min(minLength, g.getDhat()[v]);
+    }
+    return minLength;
+}
+
+
+Length Block::max(const GraphContext& g) const {
+    Length maxLength = lowerBound;
+    for (auto v : items) {
+        maxLength = std::max(maxLength, g.getDhat()[v]);
+    }
+    return maxLength;
+}
