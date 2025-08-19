@@ -1,7 +1,11 @@
 #pragma once
 
+
+#include <memory>
 #include <vector>
-#include "Graph.h"
+#include <string>
+#include "Types.h"
+#include "debug.h"
 
 
 /**
@@ -42,15 +46,18 @@ class ManualLinkedListBase : public std::enable_shared_from_this<ManualLinkedLis
 
     // Recycle a linked list block.
     // This is called when a ManualLinkedList is destructed.
-    void recycleList(VertexIndex id) { next[id] = blockPool; blockPool = id; }
+    void recycleList(VertexIndex id);
 
     public:
-    ManualLinkedListBase(size_t s)
-    : prev(s, NULL_VERTEX), next(s, NULL_VERTEX), head(s, NULL_VERTEX), blockPool(NULL_VERTEX) {}
+        ManualLinkedListBase(size_t s)
+            : prev(s, NULL_VERTEX), next(s, NULL_VERTEX), head(s, NULL_VERTEX), blockPool(NULL_VERTEX) {
+            DEBUG_MLL_LOG("Constructing ManualLinkedListBase of size: " << s);
+        }
 
     // Create a new linked list.
     ManualLinkedList newList();
     
+    void debugPrint() const;
 };
 
 /**
@@ -69,7 +76,10 @@ class ManualLinkedList {
 
     // ManualLinkedList should only be created by ManualLinkedListBase::newList().
     ManualLinkedList(std::shared_ptr<ManualLinkedListBase> base, VertexIndex id)
-    : wpListBase(base), id(id) { base->prev[id] = 0; base->next[id] = base->head[id] = NULL_VERTEX; }
+        : wpListBase(base), id(id) {
+        base->prev[id] = 0; base->next[id] = base->head[id] = NULL_VERTEX;
+        DEBUG_MLL_LOG("Constructing ManualLinkedList of id: " << id);
+    }
 
     public:
 
@@ -86,9 +96,9 @@ class ManualLinkedList {
     public:
         constexpr Iterator(const ManualLinkedList& lst, VertexIndex start) : list(lst), current(start) {}
         Iterator(Iterator&& other) = delete;
-        constexpr Iterator& operator=(ManualLinkedList::Iterator &&) = delete;
+        Iterator& operator=(ManualLinkedList::Iterator &&) = delete;
         Iterator(const Iterator& other) = default;
-        constexpr Iterator& operator=(const ManualLinkedList::Iterator &) = default;
+        Iterator& operator=(const ManualLinkedList::Iterator &) = default;
         VertexIndex operator*() const { return current; }
         Iterator& operator++() { current = list.wpListBase.lock()->next[current]; return *this; }
         Iterator& operator++(int) { auto tmp = *this; ++(*this); return tmp; }
@@ -123,4 +133,6 @@ class ManualLinkedList {
     // The other linked list will be empty after the merge.
     // The complexity is linear to the size of the other linked list.
     void merge(ManualLinkedList& other);
+
+    void debugPrint() const;
 };

@@ -5,9 +5,7 @@ Length linearLocateMinQ(std::vector<Length>& cache, size_t q, size_t first, size
     if (last == 0) { last = cache.size(); }
     size_t n = (last - first + step - 1) / step; // number of items in the range
 
-    if (first >= last || step == 0 || q == 0 || q > n) {
-        throw std::out_of_range("Invalid parameters for linearLocateMinK");
-    }
+    assert((first >= last || step == 0 || q == 0 || q > n) && "Invalid parameters for linearLocateMinK");
 
     if (n <= 5) {
         // If there are 5 or fewer items (O(1)).

@@ -1,18 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "Length.h"
-
-
-// We do not maintain vertex objects, they are uniquely identified by their index.
-using VertexIndex = size_t;
-
-constexpr VertexIndex NULL_VERTEX = SIZE_MAX;
-
-struct Arc {
-    VertexIndex to;
-    ActualLength length;
-};
+#include <iostream>
+#include "Types.h"
 
 
 /**

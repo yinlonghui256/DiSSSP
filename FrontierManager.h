@@ -1,11 +1,12 @@
 #pragma once
 
-#include <list>
 #include <map>
 #include <forward_list>
-#include <algorithm>
 #include "Length.h"
 #include "Block.h"
+
+
+class GraphContext; // Forward declaration to avoid circular dependency.
 
 
 /**
