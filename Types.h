@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cassert>
 #include <iostream>
+#include <list>
 #include "debug.h"
 
 
@@ -39,3 +40,7 @@ struct Arc {
     VertexIndex to;
     ActualLength length;
 };
+
+
+// A list of vertices, used in the FindPivot function.
+using UList = std::unique_ptr<std::list<VertexIndex>>;

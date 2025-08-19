@@ -1,4 +1,5 @@
 #include "FrontierManager.h"
+#include "GraphContext.h"
 
 
 bool FrontierManager::clearEmptyPrefixD1() {

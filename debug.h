@@ -14,6 +14,13 @@
 #define DEBUG_MLL_LOG(msg)
 #endif
 
+#ifdef DEBUG_GRAPH
+#define DEBUG_GRAPH_LOG(msg) DEBUG_LOG("[GRAPH] " << msg)
+#else
+#define DEBUG_GRAPH_LOG(msg)
+#endif
+
+
 #ifdef DEBUG_BLOCK
 #define DEBUG_BLOCK_LOG(msg) DEBUG_LOG("[BLOCK] " << msg)
 #else

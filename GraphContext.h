@@ -8,9 +8,6 @@
 #include "FrontierManager.h"
 
 
-using UList = std::unique_ptr<std::list<VertexIndex>>;
-
-
 class GraphContext {
 
     Graph graph;

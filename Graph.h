@@ -2,7 +2,14 @@
 
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <random>
+#include <set>
 #include "Types.h"
+#include "debug.h"
+
+
+class Length;
 
 
 /**
@@ -23,25 +30,33 @@ protected:
 
 public:
 
-    Graph(VertexIndex n, bool isConstGeg = false) : numOfVertices(n), adjacencyList(n), isConstDegree(isConstGeg) {}
+    Graph(VertexIndex n, bool isConstDeg = false) : numOfVertices(n), adjacencyList(n), isConstDegree(isConstDeg) {}
+
+    Graph(const std::string& filename, bool isConstDeg = false);
 
     VertexIndex getNumOfVertices() const { return numOfVertices; }
 
     size_t getNumOfEdges() const { return numOfEdges; }
 
-    virtual const std::vector<Arc>& getNeighbors(VertexIndex v) const { return adjacencyList.at(v); }
+    const std::vector<Arc>& getNeighbors(VertexIndex v) const { return adjacencyList.at(v); }
 
-    virtual void addEdge(VertexIndex from, VertexIndex to, ActualLength length) {
+    void addEdge(VertexIndex from, VertexIndex to, ActualLength length) {
         adjacencyList.at(from).emplace_back(to, length);
         ++ numOfEdges;
     }
 
+	// Used merely for debugging.
     friend std::ostream& operator<<(std::ostream& os, const Graph& g);
 
     // Transforms a general directed graph into a constant-bounded-degree graph.
-    // More precisely, each vertex has at most 2 outgoing edges (and at most 2 incominig edges, though we do not care about them).
-    // The indices in the 
+    // More precisely, each vertex has at most 2 outgoing edges (and at most 2 incoming edges, though we do not care about them).
+	// The indices in the old graph are preserved in the new graph.
+	// The new graph will have (n + 2 * m) vertices, and (n + 3 * m) edges, where n is the number of vertices in the old graph, and m is the number of edges in the old graph.
     Graph transform2ConstDeg() const ;
 
 };
 
+
+// generates a random graph and writes it to a file for testing.
+void genRandGraph2File(const std::string& filename, VertexIndex n, size_t m,
+    ActualLength minLen = 1.0, ActualLength maxLen = 10.0, unsigned int seed = 0);
