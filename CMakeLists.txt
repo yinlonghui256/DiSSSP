@@ -22,3 +22,10 @@ add_executable (test2
 )
 
 add_compile_definitions(test2 DEBUG_GRAPH)
+
+add_executable (test3
+	"test/test3.cpp"
+	"Length.cpp"
+)
+
+add_compile_definitions(test3 DEBUG_LENGTH DEBUG_LENGTH_COMPRESS_OUTPUT)

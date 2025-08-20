@@ -15,7 +15,8 @@ class Length;
 /**
  * @brief Graph is represented in the way of adjacency lists.
  * Source is always indexed 0.
- * Lengths(dhat array) are stored in the Graph.
+ * Graph only supports reading in data and basic preprocessing.
+ * The algorithm is implemented in the GraphContext class.
  */
 class Graph {
 protected:
@@ -33,6 +34,11 @@ public:
     Graph(VertexIndex n, bool isConstDeg = false) : numOfVertices(n), adjacencyList(n), isConstDegree(isConstDeg) {}
 
     Graph(const std::string& filename, bool isConstDeg = false);
+
+    Graph(Graph&&) = default;
+    Graph& operator=(Graph&&) = default;
+    Graph(const Graph&) = default;
+    Graph& operator=(const Graph&) = default;
 
     VertexIndex getNumOfVertices() const { return numOfVertices; }
 

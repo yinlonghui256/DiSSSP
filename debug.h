@@ -27,4 +27,9 @@
 #define DEBUG_BLOCK_LOG(msg)
 #endif
 
+#if defined(DEBUG_LENGTH) && !defined(DEBUG_LENGTH_COMPRESS_OUTPUT)
+#define DEBUG_LENGTH_LOG(msg) DEBUG_LOG("[LENGTH] " << msg)
+#else
+#define DEBUG_LENGTH_LOG(msg)
+#endif
 

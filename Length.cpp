@@ -1,70 +1,107 @@
 #include "Length.h"
 
 
-Length linearLocateMinQ(std::vector<Length>& cache, size_t q, size_t first, size_t last, size_t step) {
+#if defined(DEBUG_LENGTH) && !defined(DEBUG_LENGTH_COMPRESS_OUTPUT)
+#define PRINT_CACHE()  for (size_t i = first; i < last; i += step) { std::cout << std::setw(4) << cache[i]; } std::cout << std::endl << std::endl;
+#else
+#define PRINT_CACHE()
+#endif
+
+template <typename L>
+void linearLocateMinQ(std::vector<L>& cache, size_t q, size_t first, size_t last, size_t step) {
     if (last == 0) { last = cache.size(); }
     size_t n = (last - first + step - 1) / step; // number of items in the range
-
-    assert((first >= last || step == 0 || q == 0 || q > n) && "Invalid parameters for linearLocateMinK");
-
-    if (n <= 5) {
-        // If there are 5 or fewer items (O(1)).
-        // Bubble sort is still O(1) time.
-        for (size_t i = first; i < last; i += step) {
-            for (size_t j = i + step; j < last; j += step) {
-                if (cache[i] > cache[j]) {
-                    std::swap(cache[i], cache[j]);
+    assert(first < last && step > 0 && q > 0 && q <= n && "Invalid parameters for linearLocateMinQ");
+    DEBUG_LENGTH_LOG("linearLocateMinQ called with q=" << q << ", first=" << first << ", last=" << last << ", step=" << step << ", n=" << n << "; Contents:");
+	PRINT_CACHE();
+    // if n == 1, do nothing.
+    if (n == 2) {
+        // if n == 2, short circuit.
+        if ((cache[first] < cache[first + step]) ^ (q == 1)) {std::swap(cache[first], cache[first + step]); }
+    } else if (n >= 3) {
+		// if n >= 3, we first try to find a good estimate of the median.
+        // if 3 <= n <= 5, any common sorting algorithm would work.
+        // Another solution is we blindly use the first element as the median estimate.
+		// If n > 5, we use the median of medians algorithm.
+        if (n > 5) {
+            // If there are more items, we partition the array into groups of 5.
+            // Find the median of each group and swap to the first position.
+            // This would be a good estimate of the median of the whole array, and will be swapped to cache[first].
+            size_t n_group = (n + 4) / 5; // number of groups
+            size_t five_step = step * 5; // new step length
+            for (size_t i = first; i < last; i += five_step) {
+                if (i + five_step < last) {
+                    // This is not the last group.
+                    linearLocateMinQ<L>(cache, 3, i, i + five_step, step);
+                }
+                else {
+                    // This is the last group.
+                    size_t last_group_size = (last - i + step - 1) / step;
+                    linearLocateMinQ<L>(cache, (last_group_size + 1) / 2, i, last, step);
                 }
             }
+            // Now the medians of the groups are at positions first, first + five_step, first + 2 * five_step, ...
+            // We recursively find the median of these medians.
+            linearLocateMinQ<L>(cache, (n_group + 1) / 2, first, last, five_step);
         }
-        std::swap(cache[first], cache[first + (q - 1) * step]);
-        return cache[first];
-    } else {
-        // If there are more items, we partition the array into groups of 5.
-        // Find the median of each group and swap to the first position.
-        size_t n_group = (n + 4) / 5; // number of groups
-        size_t five_step = step * 5; // new step length
-        for (size_t i = first; i < last; i += five_step) {
-            if (i + five_step < last) {
-                // This is not the last group.
-                linearLocateMinQ(cache, 3, i, i + five_step, step);
-            } else {
-                // This is the last group.
-                size_t last_group_size = (last - i + step - 1) / step;
-                linearLocateMinQ(cache, (last_group_size + 1) / 2, i, last, step);
-            }
-        }
-        // Now the medians are at positions first, first + five_step, first + 2 * five_step, ...
-        // We recursively find the median of these medians.
-        Length medianEstimate = linearLocateMinQ(cache, (n_group + 1) / 2, first, last, five_step);
 
-        // Partition the array by the median estimate.
-        auto start = cache.begin() + first;
-        auto end = cache.begin() + first + step * (n - 1);
+        // number of items which are <= median estimate
+        size_t n_no_greater_estimate = partitionByFirst<L>(cache, first, last, step);
+
+        if (q < n_no_greater_estimate) {
+            linearLocateMinQ<L>(cache, q, first + step, first + step * n_no_greater_estimate, step);
+            std::swap(cache[first], cache[first + step]);
+        } else if (q > n_no_greater_estimate) {
+            size_t new_first = first + step * n_no_greater_estimate;
+            linearLocateMinQ<L>(cache, q - n_no_greater_estimate, new_first, last, step);
+			// The q-th smallest element has been swapped to the position new_first.
+			// Now we swap it back to the position first and return.
+            std::swap(cache[first], cache[new_first]);
+        }
+		// If q == n_no_greater_estimate, then the q-th smallest element has been swapped to the position first, nothing to do.
+    }
+    DEBUG_LENGTH_LOG("Leaving linearLocateMinQ with q=" << q << ", first=" << first << ", last=" << last << ", step=" << step << ", n=" << n << "; Contents:");
+    PRINT_CACHE();
+}
+
+
+template <typename L>
+size_t partitionByFirst(std::vector<L>& cache, size_t first, size_t last, size_t step) {
+    if (last == 0) { last = cache.size(); }
+    size_t n = (last - first + step - 1) / step; // number of items in the range
+    assert(first < last && step > 0 && "Invalid parameters for partitionByFirst");
+    DEBUG_LENGTH_LOG("partitionByFirst called with first=" << first << ", last=" << last << ", step=" << step << ", n=" << n << "; Contents:");
+    PRINT_CACHE();
+
+    size_t res;
+    if (n == 1) { res = 1; }
+    else if (n == 2) { res = (cache[first] < cache[first + step]) ? 1 : 2; }
+    else {
+        // Partition the array by cache[first].
+        auto& firstValue = cache[first];
+        auto start = first;
+        auto end = first + step * (n - 1);
         while (start <= end) {
-            while (*start <= medianEstimate && start <= end) { start += step; }
-            while (*end > medianEstimate && start <= end) { end -= step; }
-            if (start < end) {
-                std::swap(*start, *end);
+            while (start < last && cache[start] <= firstValue && start <= end) { start += step; }
+            while (end >= first && cache[end] > firstValue && start <= end) { end -= step; }
+            if (start < end && start < last && end >= first) {
+                std::swap(cache[start], cache[end]);
                 start += step;
                 end -= step;
             }
         }
-
-        // number of items <= medianEstimate
-        size_t n_no_greater_estiamte = (end - (cache.begin() + first)) / step + 1;
-
-        if (q < n_no_greater_estiamte) {
-            return linearLocateMinQ(cache, q, first, first + step * n_no_greater_estiamte, step);
-        } else if (q == n_no_greater_estiamte) {
-            // The q-th smallest element is the median estimate,
-            // And it has been swapped to the position first.
-            return cache[first];
-        } else {
-            size_t new_first = first + step * n_no_greater_estiamte;
-            linearLocateMinQ(cache, q - n_no_greater_estiamte, new_first, last, step);
-            std::swap(cache[first], cache[new_first]);
-            return cache[first];
-        }
+        res = (end - first) / step + 1;
     }
+    DEBUG_LENGTH_LOG("Leaving partitionByFirst with first=" << first << ", last=" << last << ", step=" << step << ", n=" << n << "; Contents:");
+    PRINT_CACHE();
+    return res;
 }
+
+
+#ifdef DEBUG_LENGTH
+template void linearLocateMinQ<int>(std::vector<int>& cache, size_t q, size_t first, size_t last, size_t step);
+template size_t partitionByFirst<int>(std::vector<int>& cache, size_t first, size_t last, size_t step);
+#endif
+
+template void linearLocateMinQ<Length>(std::vector<Length>& cache, size_t q, size_t first, size_t last, size_t step);
+template size_t partitionByFirst<Length>(std::vector<Length>& cache, size_t first, size_t last, size_t step);

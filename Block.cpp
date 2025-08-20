@@ -25,8 +25,11 @@ Length Block::locateMinQ(const GraphContext& context, size_t q) const {
     std::vector<Length> cache;
     cache.reserve(items.size());
     for (auto it: items) { cache.emplace_back(context.getDhat()[it]); }
+
     // use linear time selection algorithm to find the k-th smallest item.
-    return linearLocateMinQ(cache, q);
+    linearLocateMinQ<Length>(cache, q);
+    return cache[0];
+    //return linearLocateMinQ(cache, q);
 }
 
 

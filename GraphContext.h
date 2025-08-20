@@ -58,8 +58,21 @@ public:
 
     ManualLinkedList newList() { return spListBase->newList(); }
 
+    void resetDhat() {
+        dhat.clear();
+        dhat.reserve(graph.getNumOfVertices());
+        dhat.emplace_back(0.0, 0, 0, 0); // source vertex
+        for (VertexIndex v = 1; v < graph.getNumOfVertices(); ++v) {
+            dhat.emplace_back(std::numeric_limits<ActualLength>::infinity(), SIZE_MAX, NULL_VERTEX, v);
+        }
+	}
+
     // This function is the entry point for the BMSSP algorithm.
     // It would update dhat to the expected values.
     void BMSSP();
+
+
+	// This function implements Dijkstra's algorithm for shortest path.
+    void Dijstra();
 
 };
