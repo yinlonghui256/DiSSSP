@@ -51,6 +51,10 @@ ShpBlock Block::extractLessThanOrEqual(BMSSP& context, Length threshold, bool st
         items = context.newList();
         return newBlock;
     }
+    else if (threshold < lowerBound || (threshold == lowerBound && strict) ) {
+		return std::make_shared<Block>(context.newList(), threshold, threshold, capacity); // return an empty Block.
+    }
+
 
 	auto old_lowerBound = lowerBound;
 

@@ -50,7 +50,6 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Length& l) {
-#ifdef DEBUG_LENGTH
         if (l == Length::infinity()) { os << "{INF}"; }
         else if (l == Length::zero()) { os << "{ZERO}"; }
         else {
@@ -58,7 +57,6 @@ public:
                 (l.prevVertexIndex == NULL_VERTEX ? "N" : std::to_string(l.prevVertexIndex)) << " -> " <<
                 (l.thisVertexIndex == NULL_VERTEX ? "N" : std::to_string(l.thisVertexIndex)) << "}";
         }
-#endif
         return os;
     }
 

@@ -118,6 +118,7 @@ BMSSP::FindPivotReturn BMSSP::FindPivot(Parameters lkt, Length B, ShpBlock S) {
                 for (const auto& [v, weight_uv] : graph.getNeighbors(u)) {
                     Length relax = dhat[u].relax(v, weight_uv);
                     if (relax <= dhat[v] && relax < B) {
+                        dhat[v] = relax;
                         if (layerInW[v] == 0) { ++W_count; W->emplace_back(v); }
                         layerInW[v] = i + 1;
                     }
@@ -152,6 +153,10 @@ BMSSP::FindPivotReturn BMSSP::FindPivot(Parameters lkt, Length B, ShpBlock S) {
     // then this vertex is ready to be processed.
     while (!dfsStack.empty()) {
         auto u = dfsStack.top();
+#ifdef DEBUG_BMSSP
+		auto stack_size = dfsStack.size();
+        auto uPrev = dhat[u];
+#endif
 		if (subtree[u]) {dfsStack.pop(); continue;} // u has been processed, skip it.		
         size_t tmpTreeSize = 1; // Count itself.
         bool ready = true;
