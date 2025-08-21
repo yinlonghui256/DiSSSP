@@ -1,15 +1,27 @@
 #pragma once
 
-#include <cstddef>
 #include <cassert>
-#include <iostream>
+#include <cstddef>
+
+#include <cmath>
+#include <bit>
+#include <limits>
+#include <random>
+
+#include <forward_list>
 #include <list>
+#include <map>
+#include <set>
+#include <stack>
+#include <tuple>
+#include <vector>
+
 #include "debug.h"
 
 
 // We do not maintain vertex objects, they are uniquely identified by their index.
 using VertexIndex = size_t;
-constexpr VertexIndex NULL_VERTEX = SIZE_MAX;
+constexpr VertexIndex NULL_VERTEX = std::numeric_limits<VertexIndex>::max();
 
 
 /**

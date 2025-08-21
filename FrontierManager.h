@@ -1,12 +1,10 @@
 #pragma once
 
-#include <map>
-#include <forward_list>
-#include "Length.h"
+
 #include "Block.h"
 
 
-class GraphContext; // Forward declaration to avoid circular dependency.
+class BMSSP; // Forward declaration to avoid circular dependency.
 
 
 /**
@@ -20,7 +18,7 @@ class GraphContext; // Forward declaration to avoid circular dependency.
  */
 class FrontierManager {
 
-    GraphContext& context; // The graph context that contains the graph and the dhat array.
+    BMSSP& context; // The graph context that contains the graph and the dhat array.
 
     std::forward_list<ShpBlock> D0;   // D_0 in the paper
     std::map<Length, ShpBlock> D1; // D_1 in the paper
@@ -49,13 +47,15 @@ class FrontierManager {
 
 public:
 
-    FrontierManager(GraphContext& ctx, size_t m, Length ub)
-    : context(ctx), M(m), upperBound(ub), currentLowerBound(ub) {}
+    FrontierManager(BMSSP& ctx, size_t m, Length ub)
+    : context(ctx), M(m), upperBound(ub), currentLowerBound(ub) {
+		DEBUG_FRONTIER_LOG("Constructing FrontierManager with M = " << M << ", upperBound = " << upperBound);
+    }
 
     // Insert a vertex into the FrontierManager.
     // If the vertex's length exceeds upperBound, it will be ignored.
     // If the block it is inserted into is oversized, it will be split into two blocks.
-    // If it is currently in another block, it will first be removed from the old block.
+    // If it is currently in another block, it will first be removed from the old block, and then insert.
     void insert(VertexIndex v);
 
     // Batch insert.
@@ -65,9 +65,7 @@ public:
     // Caller ensure pBlock->upperBound <= currentLowerBound. 
     void batchPrepend(ShpBlock pBlock);
 
-    ShpBlock newBlock(Length ub = Length::infinity(), Length lb = Length::zero()) {
-        return std::make_shared<Block>(context.newList(), ub, lb, M);
-    }
+    ShpBlock newBlock(Length ub = Length::infinity(), Length lb = Length::zero());
 
     Length getCurrentLowerBound() const { return currentLowerBound; }
     

@@ -1,7 +1,15 @@
 #include "Block.h"
+#include "BMSSP.h"
 
 
-size_t Block::countNoGreater(const GraphContext& context, Length threshold) const {
+void Block::addItem(VertexIndex v) {
+    DEBUG_BLOCK_LOG("Adding item " << v << " to " << *this);
+    items.add(v);
+}
+
+
+size_t Block::countNoGreater(const BMSSP& context, Length threshold) const {
+	DEBUG_BLOCK_LOG("Counting items no greater than " << threshold << " in " << *this);
     size_t count = 0;
     for (auto it: items){
         if (context.getDhat()[it] <= threshold) {
@@ -12,7 +20,8 @@ size_t Block::countNoGreater(const GraphContext& context, Length threshold) cons
 }
 
 
-Length Block::locateMinQ(const GraphContext& context, size_t q) const {
+Length Block::locateMinQ(const BMSSP& context, size_t q) const {
+	DEBUG_BLOCK_LOG("Locating " << q << "-th smallest item in " << *this);
     if (q == 0 || q > items.size()) {
         throw std::out_of_range("k is out of range in locateMinK");
     }
@@ -33,7 +42,8 @@ Length Block::locateMinQ(const GraphContext& context, size_t q) const {
 }
 
 
-ShpBlock Block::extractLessThanOrEqual(GraphContext& context, Length threshold, bool strict) {
+ShpBlock Block::extractLessThanOrEqual(BMSSP& context, Length threshold, bool strict) {
+	DEBUG_BLOCK_LOG("Extracting items no greater than " << threshold << " in " << *this);
     lowerBound = threshold;
 
     // If threshold >= upperBound, then we are extracting all items anyway, and this Block will become empty.
@@ -46,37 +56,41 @@ ShpBlock Block::extractLessThanOrEqual(GraphContext& context, Length threshold, 
     auto newList = context.newList();
     if (strict) {
         for (auto it = items.begin(); it != items.end(); ) {
-            auto currIt = it ++;
-            if (context.getDhat()[*currIt] < threshold) {
-                newList.add(*currIt); // As being added into newList, it will be removed from the current Block.
+            auto curr = *it;
+            ++ it;
+            if (context.getDhat()[curr] < threshold) {
+                newList.add(curr); // As being added into newList, it will be removed from the current Block.
             }
         }
     } else {
         for (auto it = items.begin(); it != items.end(); ) {
-            auto currIt = it ++;
-            if (context.getDhat()[*currIt] <= threshold) {
-                newList.add(*currIt); // As being added into newList, it will be removed from the current Block.
+            auto curr = *it;
+            ++ it;
+            if (context.getDhat()[curr] <= threshold) {
+                newList.add(curr); // As being added into newList, it will be removed from the current Block.
             }
         }
     }
 
-    return std::make_shared<Block>(threshold, lowerBound, capacity, std::move(newList));
+    return std::make_shared<Block>(std::move(newList), threshold, lowerBound, capacity);
 }
 
 
 UList Block::toUList() {
+	DEBUG_BLOCK_LOG("Converting to UList" << *this);
     UList res = std::make_unique<std::list<VertexIndex>>();
     for (auto it: items) { res->emplace_back(it); }
     return res;
 }
 
 void Block::merge(Block& other)  {
+	DEBUG_BLOCK_LOG("Merging " << other << "into " << *this);
     items.merge(other.items);
     upperBound = std::max(upperBound, other.upperBound);
     lowerBound = std::min(lowerBound, other.lowerBound);
 }
 
-Length Block::min(const GraphContext& g) const {
+Length Block::min(const BMSSP& g) const {
     Length minLength = upperBound;
     for (auto v : items) {
         minLength = std::min(minLength, g.getDhat()[v]);
@@ -85,10 +99,29 @@ Length Block::min(const GraphContext& g) const {
 }
 
 
-Length Block::max(const GraphContext& g) const {
+Length Block::max(const BMSSP& g) const {
     Length maxLength = lowerBound;
     for (auto v : items) {
         maxLength = std::max(maxLength, g.getDhat()[v]);
     }
     return maxLength;
+}
+
+
+void Block::removeUnsuit(const BMSSP& g) {
+    DEBUG_BLOCK_LOG("Removing unsuited items from " << *this);
+    for (auto it = items.begin(); it != items.end(); ) {
+        auto curr = *it;
+        ++ it;
+        if (!suit(g.getDhat()[curr]) ) {
+            items.erase(curr);
+        }
+    }
+    DEBUG_BLOCK_LOG("After removing unsuited items, Block is now: " << *this);
+}
+
+
+void Block::extendLowerBound(Length newLowerBound) {
+    DEBUG_BLOCK_LOG("Extending lower bound of " << *this << " to " << newLowerBound);
+    lowerBound = std::min(lowerBound, newLowerBound);
 }

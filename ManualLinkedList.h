@@ -1,11 +1,7 @@
 #pragma once
 
 
-#include <memory>
-#include <vector>
-#include <string>
-#include "Types.h"
-#include "debug.h"
+#include "types.h"
 
 
 /**
@@ -79,10 +75,12 @@ class ManualLinkedList {
         : wpListBase(base), id(id) {
         base->prev[id] = 0; base->next[id] = base->head[id] = NULL_VERTEX;
         DEBUG_MLL_LOG("Constructing ManualLinkedList of id: " << id);
+		base->debugPrint();
     }
 
     public:
-
+    
+    // ManualLinkedList is so small that copying it is cheap.
     ManualLinkedList(ManualLinkedList&& other) = default;
     ManualLinkedList& operator=(ManualLinkedList&& other) = default;
     ManualLinkedList(const ManualLinkedList& other) = default;
@@ -101,9 +99,10 @@ class ManualLinkedList {
         Iterator& operator=(const ManualLinkedList::Iterator &) = default;
         VertexIndex operator*() const { return current; }
         Iterator& operator++() { current = list.wpListBase.lock()->next[current]; return *this; }
-        Iterator& operator++(int) { auto tmp = *this; ++(*this); return tmp; }
         bool operator!=(const Iterator& other) const { return current != other.current; }
     };
+
+	VertexIndex getId() const { return id; }
 
     bool empty() const { return wpListBase.lock()->prev[id] == 0; }
 
@@ -125,7 +124,7 @@ class ManualLinkedList {
     // Remove a vertex from its current linked list.
     // Return the VertexIndex at the next position.
     // caller responsible to check whether the vertex is in some block.
-    VertexIndex erase(VertexIndex v) { wpListBase.lock()->erase(v); }
+    void erase(VertexIndex v) { wpListBase.lock()->erase(v); }
 
     VertexIndex next(VertexIndex v) const { return wpListBase.lock()->next[v]; }
     

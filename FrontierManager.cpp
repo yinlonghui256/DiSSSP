@@ -1,5 +1,5 @@
 #include "FrontierManager.h"
-#include "GraphContext.h"
+#include "BMSSP.h"
 
 
 bool FrontierManager::clearEmptyPrefixD1() {
@@ -26,14 +26,20 @@ bool FrontierManager::clearEmptyPrefixD0() {
 
 void FrontierManager::insert(VertexIndex v){
     auto v_length = context.getDhat()[v];
-
-    currentLowerBound = std::min(currentLowerBound, v_length);
+    DEBUG_FRONTIER_LOG("Inserting vertex " << v << " of length " << v_length << " into FrontierManager.");
 
     if (v_length >= upperBound) { return; } // Ignore items that exceed the upper bound.
+
+    currentLowerBound = std::min(currentLowerBound, v_length);
 
     if (D1.empty()) {
         // If D1 is empty, we need to add a default block.
         addDefaultBlock();
+    }
+
+    if (v_length < D1.begin()->second->getLowerBound()) {
+		DEBUG_FRONTIER_LOG("Vertex " << v << " is smaller than D1's begin's lowerBound, extend it.");
+		D1.begin()->second->extendLowerBound(v_length);
     }
 
     // Find the appropriate block in D1 to insert the item.
@@ -41,10 +47,12 @@ void FrontierManager::insert(VertexIndex v){
     auto it = D1.upper_bound(v_length);
     if (it != D1.end() && it->second->suit(v_length)) {
         it->second->addItem(v);
+		DEBUG_FRONTIER_LOG("Insert done. Inserted vertex " << v << " into " << * it -> second);
         if (it->second->overSized()) {
             // If the block is oversized, it will be split into two blocks.
             auto newBlock = it->second->splitAtMedian(context);
             D1[newBlock->getUpperBound()] = newBlock;
+            DEBUG_FRONTIER_LOG("Insert of " << v << "caused split at median: " << * it -> second << " and " << *newBlock);
         }
     } else {
         throw std::logic_error("No suitable block found for the item in FrontierManager::insert.");
@@ -53,6 +61,7 @@ void FrontierManager::insert(VertexIndex v){
 
 
 void FrontierManager::batchPrepend(ShpBlock pBlock) {
+    DEBUG_FRONTIER_LOG("Batch-prepending " << *pBlock);
     if (currentLowerBound < pBlock->getUpperBound()) {
         throw std::logic_error("pBlock upperBound exceeds currentLowerBound in FrontierManager::batchPrepend.");
     }
@@ -65,10 +74,16 @@ void FrontierManager::batchPrepend(ShpBlock pBlock) {
         batchPrepend(pBlock);
         batchPrepend(smallerHalf);
     } else {
+        currentLowerBound = std::min(currentLowerBound, pBlock->min(context));
         D0.push_front(pBlock);
+        DEBUG_FRONTIER_LOG("Batch-prepending done. currentLowerBound: " << currentLowerBound);
     }
 }
 
+
+ShpBlock FrontierManager::newBlock(Length ub, Length lb) {
+    return std::make_shared<Block>(context.newList(), ub, lb, M);
+}
 
 // First, try to extract more than M or all items, S0 from D0 and S1 from D1,
 // If |S0| + |S1| <= M: pull all items.
@@ -100,6 +115,7 @@ void FrontierManager::batchPrepend(ShpBlock pBlock) {
 // Note that the above arguments hold even if M == 1.
 // These ensures that pull() is amortized to linear time per output size.
 std::pair<Length, ShpBlock> FrontierManager::pull() {
+	DEBUG_FRONTIER_LOG("Pulling from FrontierManager of capacity " << M << " with currentLowerBound = " << currentLowerBound);
 
     ShpBlock S0 = newBlock(upperBound, currentLowerBound);
     while (!D0.empty()) {
@@ -113,7 +129,7 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
         Length D1min = (clearEmptyPrefixD1() ? D1.begin()->second-> min(context) : upperBound);
         if (S0Mth < D1min) {
             // Case 1: output contains no vertex from D1, and extract no block from D1.
-            auto S0L = S0 -> extracetLessThanOrEqual(context, S0Mth);
+            auto S0L = S0 -> extractLessThanOrEqual(context, S0Mth);
             Length S0Gmin = S0 -> min(context);
             // Now S0 becomes S0G, and |S0L| == M.
             currentLowerBound = std::min(D1min, S0Gmin);
@@ -122,6 +138,7 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
                 // Note that now |S0| <= M.
                 D0.push_front(S0);
             }
+			DEBUG_FRONTIER_LOG("Pull- Case 1 all from D1: currentLowerBound updated to " << currentLowerBound << " and pulling " << *S0L);
             return std::make_pair(currentLowerBound, S0L);
         }
     }
@@ -129,7 +146,7 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
     // Case 2: output contains some vertex from D1, we can do O(1) extraction/insertion on D1.
     ShpBlock S1 = newBlock(upperBound, currentLowerBound);
     while (!D1.empty()) {
-        S1 -> merge(D1.begin()->second);
+        S1 -> merge(* D1.begin() -> second);
         D1.erase(D1.begin());
         if (S1 -> getSize() > M) { break; }
     }
@@ -139,6 +156,7 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
         // Now both D0 and D1 become empty.
         S0 -> merge(*S1);
         currentLowerBound = upperBound;
+        DEBUG_FRONTIER_LOG("Pull - Case 2 all pulled: currentLowerBound updated to " << currentLowerBound << " and pulling " << *S0);
         return std::make_pair(currentLowerBound, S0);
     }
 
@@ -150,10 +168,11 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
     for (auto it : *S0) { cache.emplace_back(context.getDhat()[it]); }
     for (auto it : *S1) { cache.emplace_back(context.getDhat()[it]); }
 
-    Length x = linearLocateMinQ(cache, M + 1);
+    linearLocateMinQ<Length>(cache, M + 1);
+    auto& x = cache[0];
 
-    auto S0L = S0 -> extractLessThan(context, x);
-    auto S1L = S1 -> extractLessThan(context, x);
+    auto S0L = S0 -> extractLessThanOrEqual(context, x, true);
+    auto S1L = S1 -> extractLessThanOrEqual(context, x, true);
 
     // Now S0 becomes S0G and S1 becomes S1G, and |S0L| + |S1L| == M.
     // S0G/S1G is empty if and only if D0/D1 is now empty.
@@ -198,6 +217,7 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
 
     currentLowerBound = x;
     S0L->merge(*S1L);
+	DEBUG_FRONTIER_LOG("Pull - Case 2 from both: currentLowerBound updated to " << currentLowerBound << " and pulling " << *S0L);
     return std::make_pair(currentLowerBound, S0L);
 }
 

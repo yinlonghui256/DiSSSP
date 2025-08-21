@@ -3,11 +3,11 @@
 #include "Length.h"
 #include "ManualLinkedList.h"
 
-
-using BlockContainer = ManualLinkedList;
-// renaming this because we had multiple alternative implementations.
-// Just for smoother transition.
+class Block;
 using ShpBlock = std::shared_ptr<Block>;
+
+class BMSSP; // Forward declaration to avoid circular dependency.
+
 
 /**
  * @brief A Block is an unsorted linked list of vertices, and the manage unit of FrontierManager.
@@ -22,15 +22,16 @@ using ShpBlock = std::shared_ptr<Block>;
  */
 class Block {
 
-    BlockContainer items;
+    ManualLinkedList items;
     Length upperBound; // exclusive
     Length lowerBound; //inclusive
     size_t capacity; // designed max number of items in this Block, typically M. 
 
 public:
 
-    Block(BlockContainer&& its, Length upper, Length lower, size_t cap = 0)
+    Block(ManualLinkedList&& its, Length upper = Length::infinity(), Length lower = Length::zero(), size_t cap = 0)
     : items(std::move(its)), upperBound(upper), lowerBound(lower), capacity(cap) {
+        DEBUG_BLOCK_LOG("Constructing Block: " << *this);
         if (upperBound < lowerBound) { throw std::invalid_argument("Block lowerBound must be less than upperBound"); }
     }
 
@@ -55,30 +56,28 @@ public:
 
     // Add an vertex to this Block.
     // caller responsible to check whether suit.
-    void addItem(VertexIndex v) { items.add(v); }
+    void addItem(VertexIndex v);
 
-    // VertexIndex removeItem(VertexIndex v) { return items.erase(v); }
-
-    size_t countNoGreater(const GraphContext& context, Length threshold) const;
+    size_t countNoGreater(const BMSSP& context, Length threshold) const;
 
     // Extracts all items in this Block that are less than or equal to the threshold to form a new Block.
     // The original Block is modified to remove these items.
     // If strict is true, then extract items < threshold. Else, extract items <= threshold.
     // In default, strict == false.
-    ShpBlock extractLessThanOrEqual(GraphContext& context, Length threshold, bool strict = false);
+    ShpBlock extractLessThanOrEqual(BMSSP& context, Length threshold, bool strict = false);
 
 
     // Extracts the smallest q items to form a new Block.
     // The original Block is modified to remove these items.
-    ShpBlock extractMinQ(GraphContext& context, size_t q) { return extractLessThanOrEqual(context, locateMinQ(context, q)); }
+    ShpBlock extractMinQ(BMSSP& context, size_t q) { return extractLessThanOrEqual(context, locateMinQ(context, q)); }
 
     // Find the q-th smallest item in this Block.
     // This function runs in linear time.
-    Length locateMinQ(const GraphContext& context, size_t q) const;
+    Length locateMinQ(const BMSSP& context, size_t q) const;
 
     // Split this Block into two Blocks by median.
     // This block would hold the larger half, and the function returns the smaller half.
-    ShpBlock splitAtMedian(GraphContext& context) { return extractMinQ(context, items.size() / 2); }
+    ShpBlock splitAtMedian(BMSSP& context) { return extractMinQ(context, items.size() / 2); }
 
     UList toUList();
 
@@ -93,11 +92,25 @@ public:
 
     // Find the minimum Length in this Block.
     // If the Block is empty, return upperBound.
-    Length min(const GraphContext& g) const;
+    Length min(const BMSSP& g) const;
 
     // Find the maximum Length in this Block.
     // If the Block is empty, return lowerBound.
-    Length max(const GraphContext& g) const;
+    Length max(const BMSSP& g) const;
 
     bool empty() const { return items.empty(); }
+
+    friend std::ostream& operator<<(std::ostream& os, const Block& b) {
+#ifdef DEBUG_BLOCK
+        os << "Block(id: " << b.items.getId() << ", uB: " << b.upperBound << ", lB: " << b.lowerBound << ", cap: " << b.capacity << ", size: " << b.items.size() << ") of Items: ";
+        b.items.debugPrint();
+#endif
+		return os;
+    }
+
+    void removeUnsuit(const BMSSP& g);
+
+	// extend the lower bound of this Block.
+	// effective only if newLowerBound < lowerBound.
+    void extendLowerBound(Length newLowerBound);
 };

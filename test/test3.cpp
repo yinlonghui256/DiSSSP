@@ -1,5 +1,4 @@
 #include "../Length.h"
-#include <random>
 
 int main() {
 	std::vector<int> cache1 = { 5, 3, 8, 6, 2, 7, 4, 1 };
@@ -29,6 +28,7 @@ int main() {
 	std::vector<int> cache3;
 	std::mt19937 gen3(rd());
 
+	cache3.reserve(2001);
 	for (int i = 0; i < 2001; ++i) {
 		cache3.push_back(i);
 	}
@@ -42,6 +42,7 @@ int main() {
 	std::vector<int> cache4;
 	std::mt19937 gen4(rd());
 
+	cache4.reserve(40001);
 	for (int i = 0; i < 40001; ++i) {
 		cache4.push_back(i);
 	}

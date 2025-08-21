@@ -2,10 +2,28 @@
 
 
 #if defined(DEBUG_LENGTH) && !defined(DEBUG_LENGTH_COMPRESS_OUTPUT)
-#define PRINT_CACHE()  for (size_t i = first; i < last; i += step) { std::cout << std::setw(4) << cache[i]; } std::cout << std::endl << std::endl;
+#define PRINT_CACHE()  for (size_t i = first; i < last; i += step) { DEBUG_OS << std::setw(4) << cache[i]; } DEBUG_OS << std::endl << std::endl;
 #else
 #define PRINT_CACHE()
 #endif
+
+/**
+ * @brief
+ * Partition by cache[first] for items at
+ * index = (first + step * i) for i in [0, (last - first) / step).
+ * After the function, for any i and j such that cache[i] <= cache[first] < cache[j], it holds that i < j.
+ * cache[first] would not be moved.
+ * Returns the number of items that are less than or equal to the first item.
+ *
+ * @param cache The vector to partition.
+ * @param first The starting index of the range.
+ * @param last The ending index of the range (exclusive).
+ * @param step The step size for partitioning.
+ * @return The number of items that are less than or equal to the first item.
+ */
+template <typename L>
+size_t partitionByFirst(std::vector<L>&cache, size_t first = 0, size_t last = 0, size_t step = 1);
+
 
 template <typename L>
 void linearLocateMinQ(std::vector<L>& cache, size_t q, size_t first, size_t last, size_t step) {

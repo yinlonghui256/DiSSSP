@@ -1,15 +1,7 @@
 #pragma once
 
-#include <concepts>
-#include <type_traits>
-#include <limits>
-#include <tuple>
-#include <vector>
-#include <iomanip>
-#include <iostream>
-#include <string>
-#include "Types.h"
-#include "debug.h"
+
+#include "types.h"
 
 
 /**
@@ -59,14 +51,20 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, const Length& l) {
 #ifdef DEBUG_LENGTH
-        os << "{" << l.length << ", |" << l.numOfEdges << "|, " <<
-            (l.prevVertexIndex == NULL_VERTEX ? "N" : std::to_string(l.prevVertexIndex)) << " -> " <<
-            (l.thisVertexIndex == NULL_VERTEX ? "N" : std::to_string(l.thisVertexIndex)) << "}";
+        if (l == Length::infinity()) { os << "{INF}"; }
+        else if (l == Length::zero()) { os << "{ZERO}"; }
+        else {
+            os << "{" << l.length << ", |" << l.numOfEdges << "|, " <<
+                (l.prevVertexIndex == NULL_VERTEX ? "N" : std::to_string(l.prevVertexIndex)) << " -> " <<
+                (l.thisVertexIndex == NULL_VERTEX ? "N" : std::to_string(l.thisVertexIndex)) << "}";
+        }
 #endif
         return os;
     }
 
     VertexIndex getIndex() const { return thisVertexIndex; }
+
+	ActualLength getLength() const { return length; }
 
     Length relax(const VertexIndex& to, ActualLength edgeLength) const {
         return {length + edgeLength, numOfEdges + 1, thisVertexIndex, to};
@@ -99,31 +97,9 @@ public:
 template <typename L>
 void linearLocateMinQ(std::vector<L>& cache, size_t q, size_t first = 0, size_t last = 0, size_t step = 1);
 
-// Length linearLocateMinQ(std::vector<Length>& cache, size_t q, size_t first = 0, size_t last = 0, size_t step = 1);
-
-
-/**
- * @brief 
- * Partition by cache[first] for items at
- * index = (first + step * i) for i in [0, (last - first) / step).
- * After the function, for any i and j such that cache[i] <= cache[first] < cache[j], it holds that i < j.
- * cache[first] would not be moved.
- * Returns the number of items that are less than or equal to the first item.
- * 
- * @param cache The vector to partition.
- * @param first The starting index of the range.
- * @param last The ending index of the range (exclusive).
- * @param step The step size for partitioning.
- * @return The number of items that are less than or equal to the first item.
- */
-template <typename L>
-size_t partitionByFirst(std::vector<L>& cache, size_t first = 0, size_t last = 0, size_t step = 1);
-
 
 #ifdef DEBUG_LENGTH
 extern template void linearLocateMinQ<int>(std::vector<int>& cache, size_t q, size_t first, size_t last, size_t step);
-extern template size_t partitionByFirst<int>(std::vector<int>& cache, size_t first, size_t last, size_t step);
 #endif
 
 extern template void linearLocateMinQ(std::vector<Length>& cache, size_t q, size_t first, size_t last, size_t step);
-extern template size_t partitionByFirst<Length>(std::vector<Length>& cache, size_t first, size_t last, size_t step);

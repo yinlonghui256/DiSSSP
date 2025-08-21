@@ -22,6 +22,7 @@ Graph::Graph(const std::string& filename, bool isConstDeg) : isConstDegree(isCon
         }
         adjacencyList[from].emplace_back(to, length);
     }
+    DEBUG_GRAPH_LOG("Constructing graph from file: " << filename << "; Graph content: " << std::endl << *this);
 }
 
 Graph Graph::transform2ConstDeg() const{
@@ -59,7 +60,7 @@ Graph Graph::transform2ConstDeg() const{
             g.addEdge(curr[i], head[i], 0);
         }
     }
-
+    DEBUG_GRAPH_LOG("Transforming constant degree graph with content: " << std::endl << g);
     return g;
 }
 
@@ -68,9 +69,9 @@ std::ostream& operator<<(std::ostream& os, const Graph& g) {
 #ifdef DEBUG_GRAPH
     os << "Graph with " << g.getNumOfVertices() << " vertices and " << g.getNumOfEdges() << " edges:\n";
     for (VertexIndex v = 0; v < g.getNumOfVertices(); ++v) {
-        os << "Vertex " << v << ":   \t";
+        os << "Vertex " << v << ": ";
         for (auto [to, length] : g.getNeighbors(v)) {
-            os << "(" << v << "->" << to << ", " << length << ")   \t";
+            os << "(" << v << "->" << to << ", " << length << ")";
         }
         os << "\n";
     }
