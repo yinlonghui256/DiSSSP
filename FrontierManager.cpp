@@ -62,8 +62,8 @@ void FrontierManager::insert(VertexIndex v){
 
 void FrontierManager::batchPrepend(ShpBlock pBlock) {
     DEBUG_FRONTIER_LOG("Batch-prepending " << *pBlock);
-    if (currentLowerBound < pBlock->getUpperBound()) {
-        throw std::logic_error("pBlock upperBound exceeds currentLowerBound in FrontierManager::batchPrepend.");
+    if (currentLowerBound < pBlock->max(context)) {
+        throw std::logic_error("pBlock max exceeds currentLowerBound in FrontierManager::batchPrepend.");
     }
 
     if (pBlock -> empty()) { return; } // Ignore empty blocks.

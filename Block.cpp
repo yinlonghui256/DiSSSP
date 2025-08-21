@@ -44,7 +44,6 @@ Length Block::locateMinQ(const BMSSP& context, size_t q) const {
 
 ShpBlock Block::extractLessThanOrEqual(BMSSP& context, Length threshold, bool strict) {
 	DEBUG_BLOCK_LOG("Extracting items no greater than " << threshold << " in " << *this);
-    lowerBound = threshold;
 
     // If threshold >= upperBound, then we are extracting all items anyway, and this Block will become empty.
     if (threshold >= upperBound) {
@@ -53,8 +52,11 @@ ShpBlock Block::extractLessThanOrEqual(BMSSP& context, Length threshold, bool st
         return newBlock;
     }
 
+	auto old_lowerBound = lowerBound;
+
     auto newList = context.newList();
     if (strict) {
+        lowerBound = threshold;
         for (auto it = items.begin(); it != items.end(); ) {
             auto curr = *it;
             ++ it;
@@ -70,9 +72,9 @@ ShpBlock Block::extractLessThanOrEqual(BMSSP& context, Length threshold, bool st
                 newList.add(curr); // As being added into newList, it will be removed from the current Block.
             }
         }
+		lowerBound = min(context);
     }
-
-    return std::make_shared<Block>(std::move(newList), threshold, lowerBound, capacity);
+    return std::make_shared<Block>(std::move(newList), lowerBound, old_lowerBound, capacity);
 }
 
 
