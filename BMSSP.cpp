@@ -36,7 +36,7 @@ BMSSP::BMSSPReturn BMSSP::BMSSP_recurse(Parameters lkt, Length B, ShpBlock S) {
         ShpBlock K = std::make_shared<Block>(newList(), Bi, Bprime, M);
         // Update Ui's out degrees.
         for (auto u : *Ui) {
-            for (auto [v, weight_uv] : graph.getNeighbors(u)) {
+            for (auto [v, weight_uv] : constDegGraph.getNeighbors(u)) {
                 Length relax = dhat[u].relax(v, weight_uv);
                 if (relax <= dhat[v] && relax < B) {
                     dhat[v] = relax;
@@ -80,7 +80,7 @@ BMSSP::BMSSPReturn BMSSP::BMSSP_basecase(Parameters lkt, Length B, ShpBlock S) {
         auto [_, u] = *H.begin();
         H.erase(H.begin());
         U->addItem(u);
-        for (const auto& [v, weight_uv] : graph.getNeighbors(u)) {
+        for (const auto& [v, weight_uv] : constDegGraph.getNeighbors(u)) {
             Length relax = dhat[u].relax(v, weight_uv);
             if (relax <= dhat[v] && relax < B) {
                 if (auto it = H.find(dhat[v]); it != H.end()) {
@@ -109,13 +109,13 @@ BMSSP::FindPivotReturn BMSSP::FindPivot(Parameters lkt, Length B, ShpBlock S) {
     UList W = S->toUList();
     size_t W_count = 0;
     size_t kS = k * S->getSize();
-    std::vector<size_t> layerInW(graph.getNumOfVertices(), 0);
+    std::vector<size_t> layerInW(constDegGraph.getNumOfVertices(), 0);
     for (const auto& v : *W) { layerInW[v] = 1; }
 
     for (size_t i = 1; i <= k; ++i) {
         for (const auto& u : *W) {
             if (layerInW[u] == i) {
-                for (const auto& [v, weight_uv] : graph.getNeighbors(u)) {
+                for (const auto& [v, weight_uv] : constDegGraph.getNeighbors(u)) {
                     Length relax = dhat[u].relax(v, weight_uv);
                     if (relax <= dhat[v] && relax < B) {
                         dhat[v] = relax;
@@ -129,7 +129,7 @@ BMSSP::FindPivotReturn BMSSP::FindPivot(Parameters lkt, Length B, ShpBlock S) {
 #ifdef DEBUG_BMSSP
 			DEBUG_BMSSP_LOG("FindPivot found too many vertices in layer " << i << ", returning S and W: ");
             DEBUG_OS << "W vertex\t:";  for (auto& v : *W) { DEBUG_OS << std::setw(4) << v << ", "; } DEBUG_OS << std::endl;
-            DEBUG_OS << "Index   \t:";  for (size_t i = 0; i < graph.getNumOfVertices(); ++i) { DEBUG_OS << std::setw(4) << i; } DEBUG_OS << std::endl;
+            DEBUG_OS << "Index   \t:";  for (size_t i = 0; i < constDegGraph.getNumOfVertices(); ++i) { DEBUG_OS << std::setw(4) << i; } DEBUG_OS << std::endl;
             DEBUG_OS << "layerInW\t:";  for (size_t i = 0; i < layerInW.size(); ++i) { DEBUG_OS << std::setw(4) << layerInW[i]; } DEBUG_OS << std::endl;
 #endif
             return std::make_pair(S->toUList(), std::move(W));
@@ -138,8 +138,8 @@ BMSSP::FindPivotReturn BMSSP::FindPivot(Parameters lkt, Length B, ShpBlock S) {
 
     UList P = std::make_unique<std::list<VertexIndex>>();
 
-    std::vector<size_t> subtree(graph.getNumOfVertices(), 0);
-    std::vector<bool> isRoot(graph.getNumOfVertices(), true);
+    std::vector<size_t> subtree(constDegGraph.getNumOfVertices(), 0);
+    std::vector<bool> isRoot(constDegGraph.getNumOfVertices(), true);
 
     // Now DFS.
     std::stack<VertexIndex> dfsStack;
@@ -160,7 +160,7 @@ BMSSP::FindPivotReturn BMSSP::FindPivot(Parameters lkt, Length B, ShpBlock S) {
 		if (subtree[u]) {dfsStack.pop(); continue;} // u has been processed, skip it.		
         size_t tmpTreeSize = 1; // Count itself.
         bool ready = true;
-        for (const auto& [v, weight_uv] : graph.getNeighbors(u)) {
+        for (const auto& [v, weight_uv] : constDegGraph.getNeighbors(u)) {
             if (layerInW[v] && dhat[u].relax(v, weight_uv) <= dhat[v]) {
                 // This is a valid edge in F.
                 isRoot[v] = false; // v is not a root.
@@ -189,7 +189,7 @@ BMSSP::FindPivotReturn BMSSP::FindPivot(Parameters lkt, Length B, ShpBlock S) {
 	DEBUG_BMSSP_LOG("FindPivot found " << P->size() << " pivot vertices with W of size " << W -> size());
 	DEBUG_OS << "Pivot vertex: ";  for (auto& v : *P) { DEBUG_OS << std::setw(4) << v << ", "; } DEBUG_OS << std::endl;
     DEBUG_OS << "W vertex\t: ";  for (auto& v : *W) { DEBUG_OS << std::setw(4) << v << ", "; } DEBUG_OS << std::endl;
-    DEBUG_OS << "Index   \t:";  for (size_t i = 0; i < graph.getNumOfVertices(); ++i) { DEBUG_OS << std::setw(4) << i; } DEBUG_OS << std::endl;
+    DEBUG_OS << "Index   \t:";  for (size_t i = 0; i < constDegGraph.getNumOfVertices(); ++i) { DEBUG_OS << std::setw(4) << i; } DEBUG_OS << std::endl;
     DEBUG_OS << "layerInW\t:";  for (size_t i = 0; i < layerInW.size(); ++i) { DEBUG_OS << std::setw(4) << layerInW[i]; } DEBUG_OS << std::endl;
     DEBUG_OS << "subtree \t:";  for (size_t i = 0; i < subtree.size(); ++i) { DEBUG_OS << std::setw(4) << subtree[i]; } DEBUG_OS << std::endl;
     DEBUG_OS << "isRoot  \t:";  for (size_t i = 0; i < isRoot.size(); ++i) { DEBUG_OS << std::setw(4) << isRoot[i]; } DEBUG_OS << std::endl;
@@ -219,7 +219,7 @@ void BMSSP::resetDhat() {
     // Reset the dhat array to its initial state.
     dhat.clear();
     dhat.emplace_back(Length::zero()); // Source vertex
-    for (VertexIndex v = 1; v < graph.getNumOfVertices(); ++v) {
+    for (VertexIndex v = 1; v < constDegGraph.getNumOfVertices(); ++v) {
         dhat.emplace_back(std::numeric_limits<ActualLength>::infinity(), SIZE_MAX, NULL_VERTEX, v);
     }
 }
@@ -229,9 +229,9 @@ void BMSSP::solve() {
     // Entry point for the BMSSP algorithm.
 
     // Specify parameters for the BMSSP algorithm.
-	auto n = graph.getNumOfVertices();
+	auto n = constDegGraph.getNumOfVertices();
     size_t l = static_cast<size_t>(std::ceil(std::cbrt(std::log2(n)))), k = l, t = l * l;
-    DEBUG_BMSSP_LOG("Starting BMSSP algorithm on graph with " << n << " vertices, with Parameters: l=" << l << ", k=" << k << ", t=" << t);
+    DEBUG_BMSSP_LOG("Starting BMSSP algorithm on transformed graph with " << n << " vertices, with Parameters: l=" << l << ", k=" << k << ", t=" << t);
 
     // Start with the source vertex.
     auto initialBlock = std::make_shared<Block>(newList(), Length::infinity(), Length::zero(), 0);

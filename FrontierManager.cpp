@@ -3,6 +3,7 @@
 
 
 bool FrontierManager::clearEmptyPrefixD1() {
+    sanityCheckD1();
     while (!D1.empty()) {
         if (D1.begin()->second->empty()) {
             D1.erase(D1.begin());
@@ -10,6 +11,7 @@ bool FrontierManager::clearEmptyPrefixD1() {
             return true; // D1.front() is non-empty.
         }
     }
+    sanityCheckD1();
     return false; // D1 is empty.
 }
 
@@ -25,6 +27,7 @@ bool FrontierManager::clearEmptyPrefixD0() {
 }
 
 void FrontierManager::insert(VertexIndex v){
+    sanityCheckD1();
     auto v_length = context.getDhat()[v];
     DEBUG_FRONTIER_LOG("Inserting vertex " << v << " of length " << v_length << " into FrontierManager.");
 
@@ -57,10 +60,12 @@ void FrontierManager::insert(VertexIndex v){
     } else {
         throw std::logic_error("No suitable block found for the item in FrontierManager::insert.");
     }
+    sanityCheckD1();
 }
 
 
 void FrontierManager::batchPrepend(ShpBlock pBlock) {
+    sanityCheckD1();
     DEBUG_FRONTIER_LOG("Batch-prepending " << *pBlock);
     if (currentLowerBound < pBlock->max(context)) {
         throw std::logic_error("pBlock max exceeds currentLowerBound in FrontierManager::batchPrepend.");
@@ -115,9 +120,10 @@ ShpBlock FrontierManager::newBlock(Length ub, Length lb) {
 // Note that the above arguments hold even if M == 1.
 // These ensures that pull() is amortized to linear time per output size.
 std::pair<Length, ShpBlock> FrontierManager::pull() {
+    sanityCheckD1();
 	DEBUG_FRONTIER_LOG("Pulling from FrontierManager of capacity " << M << " with currentLowerBound = " << currentLowerBound);
 
-    ShpBlock S0 = newBlock(upperBound, currentLowerBound);
+    ShpBlock S0 = newBlock(currentLowerBound, currentLowerBound);
     while (!D0.empty()) {
         S0 -> merge(* D0.front());
         D0.pop_front();
@@ -138,24 +144,27 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
                 // Note that now |S0| <= M.
                 D0.push_front(S0);
             }
+            sanityCheckD1();
 			DEBUG_FRONTIER_LOG("Pull- Case 1 all from D1: currentLowerBound updated to " << currentLowerBound << " and pulling " << *S0L);
             return std::make_pair(currentLowerBound, S0L);
         }
     }
 
     // Case 2: output contains some vertex from D1, we can do O(1) extraction/insertion on D1.
-    ShpBlock S1 = newBlock(upperBound, currentLowerBound);
+    ShpBlock S1 = newBlock(currentLowerBound, currentLowerBound);
     while (!D1.empty()) {
         S1 -> merge(* D1.begin() -> second);
         D1.erase(D1.begin());
         if (S1 -> getSize() > M) { break; }
     }
+    sanityCheckD1();
 
     if (S0 -> getSize() + S1 -> getSize() <= M) {
         // S0 / S1 must have extracted all items in D0 / D1.
         // Now both D0 and D1 become empty.
         S0 -> merge(*S1);
         currentLowerBound = upperBound;
+        sanityCheckD1();
         DEBUG_FRONTIER_LOG("Pull - Case 2 all pulled: currentLowerBound updated to " << currentLowerBound << " and pulling " << *S0);
         return std::make_pair(currentLowerBound, S0);
     }
@@ -202,6 +211,7 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
             S1 = D1.begin()->second->splitAtMedian(context);
         }
     }
+    sanityCheckD1();
 
     // Now D1 is empty, or S1 is normal/over-sized.
     // If S1 is now empty then D1 is empty. In this case, nothing to do.
@@ -211,8 +221,10 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
         auto smallerHalf = S1 -> splitAtMedian(context);
         D1[smallerHalf->getUpperBound()] = smallerHalf;
         D1[S1->getUpperBound()] = S1;
+        sanityCheckD1();
     } else if (!S1 -> empty()) {
         D1[S1->getUpperBound()] = S1;
+        sanityCheckD1();
     }
 
     currentLowerBound = x;
@@ -221,3 +233,15 @@ std::pair<Length, ShpBlock> FrontierManager::pull() {
     return std::make_pair(currentLowerBound, S0L);
 }
 
+
+void FrontierManager::sanityCheckD1() {
+#ifdef DEBUG_FRONTIER
+	Length lastUpperBound = Length::infinity();
+    for (auto it = D1.begin(); it != D1.end(); ++it) {
+        if (it != D1.begin()) {
+			assert(it -> second -> getLowerBound() == lastUpperBound && "last block's upperBound does not match with this block's lowerBound");
+        }
+        lastUpperBound = it->second->getUpperBound();
+    }
+#endif
+}

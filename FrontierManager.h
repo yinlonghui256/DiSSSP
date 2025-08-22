@@ -44,6 +44,8 @@ class FrontierManager {
     // Similar to switchD1FrontNonEmpty(), but for D0.
     bool clearEmptyPrefixD0();
 
+    // merely used for debugging.
+    void sanityCheckD1();
 
 public:
 

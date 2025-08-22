@@ -26,6 +26,10 @@ Graph::Graph(const std::string& filename, bool isConstDeg) : isConstDegree(isCon
 }
 
 Graph Graph::transform2ConstDeg() const{
+    if (isConstDegree) {
+        DEBUG_GRAPH_LOG("Graph is already constant-degree, no need to transform.");
+        return *this; // Already constant-degree graph.
+	}
     // For each vertex, we create a zero-length circle.
     // For each edge, we create two corresponding vertices in the new graph.
     // And we let the circle of the vertex include the corresponding vertices of its incident edges.

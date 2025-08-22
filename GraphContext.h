@@ -7,44 +7,35 @@ class GraphContext {
 protected:
 	Graph graph; // The graph to be processed.
 
+	std::string_view methodName; // The name of the method used for solving the problem.
+
 public:
-	GraphContext(Graph&& g): graph(g) {}
+	GraphContext(Graph&& g, std::string_view name): graph(std::move(g)), methodName(name) {}
 
     virtual void solve() = 0;
 
-	virtual ActualLength getLength(VertexIndex v) = 0;
-};
+    virtual ActualLength getLength(VertexIndex v) const = 0;
 
-
-// Theorerically, Dijkstra with binary heap (std::map) runs in O(m \log n) time;
-// When witn Fibonacci heap, it runs in O(m + n \log n) time.
-// However, Fibonacci heap has a larger constant than binary heap.
-class DijkstraWithBinaryHeap : public GraphContext {
-	
-public:
-	DijkstraWithBinaryHeap(Graph&& g): GraphContext(std::move(g)) {}
-
-	void solve() override {
-		// Implementation of Dijkstra's algorithm using a binary heap (std::map).
-		// This is a placeholder for the actual implementation.
+	virtual void printLengths() const {
+		for (VertexIndex v = 0; v < graph.getNumOfVertices(); ++v) {
+			std::cout << "d[" << std::setw(4) << v << "]=" << std::setw(8) << getLength(v) << std::endl;
+		}
 	}
 
-	ActualLength getLength(VertexIndex v) override {
-		// Placeholder for getting the length of the shortest path to vertex v.
-		return 0;
-	}
-};
-
-class DijkstraWithFibonacciHeap : public GraphContext {
-	public:
-	DijkstraWithFibonacciHeap(Graph&& g): GraphContext(std::move(g)) {}
-	void solve() override {
-		// Implementation of Dijkstra's algorithm using a Fibonacci heap.
-		// This is a placeholder for the actual implementation.
-	}
-
-	ActualLength getLength(VertexIndex v) override {
-		// Placeholder for getting the length of the shortest path to vertex v.
-		return 0;
+	bool examine(const GraphContext& other) const {
+		std::cout << "Examining lengths of " << methodName << " against " << other.methodName << std::endl;
+		bool allMatch = true;
+		size_t countMismatch = 0;
+		for (VertexIndex v = 0; v < graph.getNumOfVertices(); ++v) {
+			if (std::abs(getLength(v) - other.getLength(v)) > 1e-6) {
+				allMatch = false;
+				++countMismatch;
+				if (countMismatch <= 10) {
+					std::cout << "Mismatch at vertex " << v << ": " << getLength(v) << " != " << other.getLength(v) << std::endl;
+				}
+			}
+		}
+		std::cout << (allMatch ? "All lengths match." : "There are mismatches.") << std::endl;
 	}
 };
+

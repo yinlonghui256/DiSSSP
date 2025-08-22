@@ -57,7 +57,7 @@ inline std::ostream& debug_log_stream(const std::string& filename = "debug.log")
 #endif
 
 
-#ifdef DEBUG_FRONTIER
+#ifdef defined(DEBUG_FRONTIER) && !defined(DEBUG_FRONTIER_COMPRESS_OUTPUT)
 #define DEBUG_FRONTIER_LOG(msg) DEBUG_LOG("[FRONTIER] " << msg)
 #else
 #define DEBUG_FRONTIER_LOG(msg)

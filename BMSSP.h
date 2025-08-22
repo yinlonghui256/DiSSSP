@@ -13,6 +13,7 @@ class BMSSP : public GraphContext {
 
     std::shared_ptr<ManualLinkedListBase> spListBase;
 
+	Graph constDegGraph; // The constant-degree graph transformed from the original graph.
 
     // The return value of BMSSP, used between recursive calls, as specified in algorithm 3 in the paper.
     // U and W may overlap, we need Block to rule out repetitions.
@@ -42,9 +43,9 @@ class BMSSP : public GraphContext {
 public:
 
     BMSSP(Graph&& g)
-        : GraphContext(std::move(g)) {
-        spListBase = std::make_shared<ManualLinkedListBase>(graph.getNumOfVertices());
-        dhat.reserve(graph.getNumOfVertices());
+        : GraphContext(std::move(g), "BMSSP"), constDegGraph(graph.transform2ConstDeg()) {
+        spListBase = std::make_shared<ManualLinkedListBase>(constDegGraph.getNumOfVertices());
+        dhat.reserve(constDegGraph.getNumOfVertices());
         resetDhat();
     }
 
@@ -58,7 +59,7 @@ public:
     // It would update dhat to the expected values.
     void solve() override;
 
-    ActualLength getLength(VertexIndex v) override { return dhat[v].getLength(); }
+    ActualLength getLength(VertexIndex v) const override { return dhat[v].getLength(); }
 
     void printDhat(std::ostream& os = std::cout) const {
         for (VertexIndex v = 0; v < dhat.size(); ++v) { os << "dhat[" << v << "] = " << dhat[v] << std::endl; }
